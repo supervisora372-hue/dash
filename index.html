@@ -1,0 +1,3144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Dashboard de Indicadores de Vendas</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  /* ======= TEMA ESCURO (padrão) ======= */
+  :root {
+    --bg:#0a0a0a; --card:#141414; --card2:#1a1a1a; --border:#2a2a2a;
+    --accent:#00ffe0; --accent2:#ff6b35; --accent3:#a78bfa; --accent4:#facc15;
+    --text:#e2e8f0; --muted:#4a5568;
+    --pos-color:#34d399; --neg-color:#f87171;
+    --table-head-bg:transparent;
+    --table-row-hover:rgba(255,255,255,0.02);
+    --shadow:none;
+  }
+
+  /* ======= TEMA CLARO ======= */
+  html.light {
+    --bg:#f0f2f5; --card:#ffffff; --card2:#f8f9fa; --border:#e2e6ea;
+    --accent:#0077cc; --accent2:#e05c1b; --accent3:#6c3fc7; --accent4:#b58800;
+    --text:#1a202c; --muted:#718096;
+    --pos-color:#1a9e5c; --neg-color:#c0392b;
+    --table-head-bg:#f8f9fa;
+    --table-row-hover:rgba(0,0,0,0.025);
+    --shadow:0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  /* CORES DAS LOJAS — ESCURO */
+  :root {
+    --atm-bg:rgba(0,255,224,0.12);   --atm-bd:rgba(0,255,224,0.9);   --atm-tx:#00ffe0;
+    --pba-bg:rgba(167,139,250,0.12); --pba-bd:rgba(167,139,250,0.9); --pba-tx:#a78bfa;
+    --ljr-bg:rgba(255,107,53,0.12);  --ljr-bd:rgba(255,107,53,0.9);  --ljr-tx:#ff6b35;
+    --par-bg:rgba(250,204,21,0.12);  --par-bd:rgba(250,204,21,0.9);  --par-tx:#facc15;
+    --tap-bg:rgba(52,211,153,0.12);  --tap-bd:rgba(52,211,153,0.9);  --tap-tx:#34d399;
+    --otcp-bg:rgba(96,165,250,0.12); --otcp-bd:rgba(96,165,250,0.9); --otcp-tx:#60a5fa;
+    --otct-bg:rgba(244,114,182,0.12);--otct-bd:rgba(244,114,182,0.9);--otct-tx:#f472b6;
+  }
+  /* CORES DAS LOJAS — CLARO (mais saturadas, legíveis em fundo branco) */
+  html.light {
+    --atm-bg:rgba(0,119,204,0.10);    --atm-bd:rgba(0,119,204,0.9);    --atm-tx:#0077cc;
+    --pba-bg:rgba(108,63,199,0.10);   --pba-bd:rgba(108,63,199,0.9);   --pba-tx:#6c3fc7;
+    --ljr-bg:rgba(224,92,27,0.10);    --ljr-bd:rgba(224,92,27,0.9);    --ljr-tx:#e05c1b;
+    --par-bg:rgba(181,136,0,0.10);    --par-bd:rgba(181,136,0,0.9);    --par-tx:#b58800;
+    --tap-bg:rgba(26,158,92,0.10);    --tap-bd:rgba(26,158,92,0.9);    --tap-tx:#1a9e5c;
+    --otcp-bg:rgba(30,100,200,0.10);  --otcp-bd:rgba(30,100,200,0.9);  --otcp-tx:#1e64c8;
+    --otct-bg:rgba(180,60,140,0.10);  --otct-bd:rgba(180,60,140,0.9);  --otct-tx:#b43c8c;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;transition:background 0.25s,color 0.25s;}
+  body::before{content:'';position:fixed;inset:0;
+    background:radial-gradient(ellipse 80% 60% at 0% 0%,rgba(0,255,224,0.04) 0%,transparent 55%),
+               radial-gradient(ellipse 60% 50% at 100% 100%,rgba(167,139,250,0.04) 0%,transparent 55%);
+    pointer-events:none;z-index:0;transition:opacity 0.3s;}
+  html.light body::before{opacity:0;}
+  .wrap{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:2rem;}
+
+  /* HEADER */
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border);}
+  .brand h1{font-family:'Inter',sans-serif;font-size:1.75rem;font-weight:800;letter-spacing:-0.04em;color:var(--text);}
+  .brand h1 em{color:var(--accent);font-style:normal;}
+  .brand span{font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.15em;display:block;margin-top:0.3rem;}
+  .badge-live{padding:0.35rem 0.75rem;border-radius:999px;font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;background:rgba(0,255,224,0.1);color:var(--accent);border:1px solid rgba(0,255,224,0.25);}
+  html.light .badge-live{background:rgba(0,119,204,0.08);color:var(--accent);border-color:rgba(0,119,204,0.2);}
+  .badge-live::before{content:'● ';}
+
+  /* THEME TOGGLE */
+  .btn-theme{
+    display:flex;align-items:center;gap:0.4rem;
+    padding:0.45rem 1rem;border-radius:8px;
+    font-family:'Inter',sans-serif;font-size:0.72rem;font-weight:600;
+    cursor:pointer;border:1px solid var(--border);
+    background:var(--card2);color:var(--muted);
+    transition:all 0.2s;white-space:nowrap;
+  }
+  .btn-theme:hover{border-color:var(--accent);color:var(--accent);}
+  .theme-icon{font-size:0.9rem;}
+
+  /* UPLOAD */
+  .upload-section{background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;display:flex;flex-direction:column;gap:0.75rem;box-shadow:var(--shadow);}
+  .upload-section p{font-size:0.72rem;color:var(--muted);}
+  .upload-section p strong{color:var(--text);}
+  .url-row{display:flex;gap:0.5rem;flex-wrap:wrap;}
+  .url-input{flex:1;min-width:260px;padding:0.5rem 0.75rem;background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Inter',sans-serif;font-size:0.7rem;outline:none;}
+  .url-input:focus{border-color:var(--accent);}
+  .url-input::placeholder{color:var(--muted);}
+  .btn{padding:0.5rem 1.1rem;background:rgba(0,255,224,0.08);color:var(--accent);border:1px solid rgba(0,255,224,0.3);border-radius:8px;font-family:'Inter',sans-serif;font-size:0.72rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+  .btn:hover{background:rgba(0,255,224,0.18);}
+  html.light .btn{background:rgba(0,119,204,0.07);color:var(--accent);border-color:rgba(0,119,204,0.25);}
+  html.light .btn:hover{background:rgba(0,119,204,0.14);}
+  #fileInput{display:none;}
+
+  /* TAB NAV */
+  .tab-nav{display:flex;gap:0;margin-bottom:2rem;border-bottom:1px solid var(--border);}
+  .tab-btn{
+    padding:0.75rem 1.75rem;
+    font-family:'Inter',sans-serif;font-size:0.78rem;font-weight:700;
+    text-transform:uppercase;letter-spacing:0.1em;
+    cursor:pointer;border:none;background:transparent;
+    color:var(--muted);position:relative;
+    transition:color 0.2s;
+  }
+  .tab-btn::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;border-radius:2px 2px 0 0;transition:background 0.2s;}
+  .tab-btn.active{color:var(--text);}
+  .tab-btn[data-tab="indicadores"].active::after{background:var(--accent);}
+  .tab-btn[data-tab="curva"].active::after{background:#34d399;}
+  .tab-btn[data-tab="resumo"].active::after{background:var(--accent3);}
+  .tab-btn[data-tab="comparadas"].active::after{background:#60a5fa;}
+  .tab-btn[data-tab="dezena"].active::after{background:#f472b6;}
+  .tab-btn[data-tab="termometro"].active::after{background:#fb923c;}
+  .tab-panel[data-panel="dezena"] .filter-btn.active{background:rgba(244,114,182,0.1);color:#f472b6;border-color:#f472b6;}
+  .tab-panel[data-panel="dezena"] .filter-btn:hover{border-color:#f472b6;color:#f472b6;}
+  .tab-panel[data-panel="termometro"] .filter-btn.active{background:rgba(251,146,60,0.1);color:#fb923c;border-color:#fb923c;}
+  .tab-panel[data-panel="termometro"] .filter-btn:hover{border-color:#fb923c;color:#fb923c;}
+  .tab-btn .tab-icon{margin-right:0.4rem;}
+
+  /* TAB PANELS */
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  /* SUB-TABS (dentro de Indicadores) */
+  .sub-tab-nav{
+    display:flex;gap:0;margin-bottom:1.5rem;
+    border:1px solid var(--border);border-radius:10px;
+    background:var(--card2);padding:4px;width:fit-content;
+  }
+  .sub-tab-btn{
+    padding:0.45rem 1.25rem;border-radius:7px;
+    font-family:'Inter',sans-serif;font-size:0.72rem;font-weight:700;
+    text-transform:uppercase;letter-spacing:0.08em;
+    cursor:pointer;border:none;background:transparent;
+    color:var(--muted);transition:all 0.2s;
+  }
+  .sub-tab-btn.active-vendas{background:rgba(0,255,224,0.12);color:var(--accent);}
+  html.light .sub-tab-btn.active-vendas{background:rgba(0,119,204,0.1);color:var(--accent);}
+  .sub-tab-btn.active-pa{background:rgba(167,139,250,0.12);color:var(--accent3);}
+  html.light .sub-tab-btn.active-pa{background:rgba(108,63,199,0.1);color:var(--accent3);}
+  .sub-tab-btn.active-tm{background:rgba(250,204,21,0.12);color:var(--accent4);}
+  html.light .sub-tab-btn.active-tm{background:rgba(181,136,0,0.1);color:var(--accent4);}
+
+  /* FILTER BAR */
+  .filter-bar{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:2rem;}
+  .filter-btn{padding:0.4rem 1rem;border-radius:6px;font-family:'Inter',sans-serif;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--muted);transition:all 0.2s;}
+  .filter-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .filter-btn.active{background:rgba(0,255,224,0.1);color:var(--accent);border-color:var(--accent);}
+  html.light .filter-btn.active{background:rgba(0,119,204,0.08);}
+
+  /* KPIs */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-bottom:2rem;}
+  .kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;position:relative;overflow:hidden;box-shadow:var(--shadow);}
+  .kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+  .kpi-a::after{background:var(--accent);}
+  .kpi-b::after{background:var(--accent2);}
+  .kpi-c::after{background:var(--accent3);}
+  .kpi-d::after{background:var(--accent4);}
+  .kpi label{font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;display:block;margin-bottom:0.5rem;}
+  .kpi-val{font-family:'Inter',sans-serif;font-size:1.5rem;font-weight:800;letter-spacing:-0.03em;color:var(--text);}
+  .kpi-sub{font-size:0.65rem;color:var(--muted);margin-top:0.3rem;}
+
+  /* LAYOUT */
+  .main-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:1rem;margin-bottom:1rem;}
+  .bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.5rem;box-shadow:var(--shadow);}
+  .card-title{font-family:'Inter',sans-serif;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:1.25rem;display:flex;align-items:center;gap:0.5rem;}
+  .card-title::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);}
+  .card-title.pa-accent::before{background:var(--accent3);}
+  .card-title.tm-accent::before{background:var(--accent4);}
+
+  /* RANKING TABLE */
+  .rank-table{width:100%;border-collapse:collapse;}
+  .rank-table th{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);text-align:left;padding:0 0.5rem 0.75rem;border-bottom:1px solid var(--border);background:var(--table-head-bg);}
+  .rank-table th:last-child,.rank-table td:last-child{text-align:right;}
+  .rank-table tbody tr{border-bottom:1px solid var(--border);}
+  .rank-table tbody tr:hover{background:var(--table-row-hover);}
+  .rank-table td{padding:0.6rem 0.5rem;font-size:0.7rem;vertical-align:middle;}
+  .pos-badge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;font-family:'Inter',sans-serif;font-weight:700;font-size:0.65rem;}
+  .pos-1{background:rgba(250,204,21,0.15);color:var(--accent4);}
+  .pos-2{background:rgba(148,163,184,0.15);color:#94a3b8;}
+  html.light .pos-2{background:rgba(100,116,139,0.12);color:#64748b;}
+  .pos-3{background:rgba(255,107,53,0.12);color:var(--accent2);}
+  .pos-n{background:var(--card2);color:var(--muted);}
+  .seller-name{color:var(--text);font-size:0.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;}
+  .store-tag{display:inline-block;padding:0.15rem 0.45rem;border-radius:4px;font-size:0.58rem;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;}
+  .val-cell{font-weight:500;color:var(--accent);font-family:'Inter',sans-serif;font-size:0.75rem;}
+  .val-cell-pa{font-weight:500;color:var(--accent3);font-family:'Inter',sans-serif;font-size:0.75rem;}
+  .val-cell-tm{font-weight:500;color:var(--accent4);font-family:'Inter',sans-serif;font-size:0.75rem;}
+  .mini-bar-wrap{display:flex;align-items:center;gap:0.5rem;margin-top:3px;}
+  .mini-bar-bg{flex:1;height:3px;background:var(--border);border-radius:999px;overflow:hidden;min-width:50px;}
+  .mini-bar-fill{height:100%;border-radius:999px;transition:width 1s cubic-bezier(.4,0,.2,1);}
+
+  .chart-wrap{position:relative;height:250px;}
+
+  /* STORE CARDS */
+  .store-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;}
+  .store-card{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:1rem;transition:border-color 0.2s;box-shadow:var(--shadow);}
+  .store-card:hover{border-color:rgba(255,255,255,0.1);}
+  html.light .store-card:hover{border-color:rgba(0,0,0,0.12);}
+  .store-card-name{font-family:'Inter',sans-serif;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.4rem;}
+  .store-card-val{font-family:'Inter',sans-serif;font-size:1.05rem;font-weight:800;color:var(--text);}
+  .store-card-sub{font-size:0.58rem;color:var(--muted);margin-top:0.2rem;}
+
+  /* STORE COLORS (usam variáveis CSS) */
+  .store-atm     {background:var(--atm-bg); color:var(--atm-tx);}
+  .store-pba     {background:var(--pba-bg); color:var(--pba-tx);}
+  .store-ljr     {background:var(--ljr-bg); color:var(--ljr-tx);}
+  .store-paraiso {background:var(--par-bg); color:var(--par-tx);}
+  .store-tapajos {background:var(--tap-bg); color:var(--tap-tx);}
+  .store-otcpba  {background:var(--otcp-bg);color:var(--otcp-tx);}
+  .store-otctpj  {background:var(--otct-bg);color:var(--otct-tx);}
+  .store-n       {background:rgba(100,116,139,0.12);color:#64748b;}
+
+  /* PA/TM tab colors */
+  .tab-panel[data-panel="indicadores"] .filter-btn.active{background:rgba(0,255,224,0.1);color:var(--accent);border-color:var(--accent);}
+
+  .btn-refresh{background:rgba(0,255,224,0.12)!important;color:var(--accent)!important;border-color:rgba(0,255,224,0.3)!important;font-weight:600;}
+  html.light .btn-refresh{background:rgba(0,119,204,0.08)!important;border-color:rgba(0,119,204,0.25)!important;}
+  .btn-refresh.loading{opacity:0.6;cursor:not-allowed;pointer-events:none;}
+
+  /* CURVA */
+  .curva-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:1.25rem;position:relative;overflow:hidden;box-shadow:var(--shadow);}
+  .curva-card-name{font-family:'Inter',sans-serif;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.75rem;}
+  .curva-meta{font-size:0.62rem;color:var(--muted);margin-bottom:0.4rem;}
+  .curva-val{font-family:'Inter',sans-serif;font-size:1.1rem;font-weight:800;color:var(--text);margin-bottom:0.25rem;}
+  .curva-badge{display:inline-block;padding:0.2rem 0.6rem;border-radius:999px;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.75rem;}
+  .curva-ok{background:rgba(52,211,153,0.15);color:var(--pos-color);border:1px solid rgba(52,211,153,0.3);}
+  .curva-nok{background:rgba(248,113,113,0.15);color:var(--neg-color);border:1px solid rgba(248,113,113,0.3);}
+  .curva-progress{height:6px;background:var(--border);border-radius:999px;overflow:hidden;margin-bottom:0.5rem;}
+  .curva-progress-fill{height:100%;border-radius:999px;transition:width 1s ease;}
+  .curva-stats{display:flex;justify-content:space-between;font-size:0.62rem;color:var(--muted);}
+  .curva-recalc{font-size:0.65rem;margin-top:0.6rem;padding-top:0.6rem;border-top:1px solid var(--border);}
+  .curva-recalc span{color:var(--accent4);font-family:'Inter',sans-serif;font-weight:700;}
+  .loja-sel-btn{padding:0.3rem 0.7rem;border-radius:6px;font-family:'Inter',sans-serif;font-size:0.65rem;text-transform:uppercase;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--muted);transition:all 0.2s;}
+  .loja-sel-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(0,255,224,0.08);}
+  html.light .loja-sel-btn.active{background:rgba(0,119,204,0.07);}
+
+  /* GRUPOS */
+  .grupo-bar{display:flex;gap:0.5rem;margin-bottom:1.5rem;padding:0.4rem;background:var(--card);border:1px solid var(--border);border-radius:10px;width:fit-content;box-shadow:var(--shadow);}
+  .grupo-btn{padding:0.45rem 1.25rem;border-radius:7px;font-family:'Inter',sans-serif;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;border:none;background:transparent;color:var(--muted);transition:all 0.2s;}
+  .grupo-btn:hover{color:var(--text);}
+  .grupo-btn.active-verm{background:rgba(248,113,113,0.15);color:#f87171;}
+  html.light .grupo-btn.active-verm{background:rgba(192,57,43,0.1);color:#c0392b;}
+  .grupo-btn.active-otica{background:rgba(96,165,250,0.15);color:#60a5fa;}
+  html.light .grupo-btn.active-otica{background:rgba(30,100,200,0.1);color:#1e64c8;}
+  .grupo-btn.active-all{background:rgba(0,255,224,0.1);color:var(--accent);}
+  html.light .grupo-btn.active-all{background:rgba(0,119,204,0.08);}
+
+  /* RESUMO */
+  .resumo-section-title{font-family:'Inter',sans-serif;font-size:0.8rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);margin:1.5rem 0 1rem;display:flex;align-items:center;gap:0.75rem;}
+  .resumo-section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+  .resumo-loja-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.5rem;margin-bottom:2rem;box-shadow:var(--shadow);}
+  .resumo-loja-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border);}
+  .resumo-loja-name{font-family:'Inter',sans-serif;font-size:1rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;}
+  .resumo-loja-stats{display:flex;gap:1.5rem;flex-wrap:wrap;}
+  .resumo-loja-stat{display:flex;flex-direction:column;align-items:flex-end;}
+  .resumo-loja-stat label{font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;}
+  .resumo-loja-stat span{font-family:'Inter',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text);}
+  .resumo-vend-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0.75rem;}
+  .resumo-vend-card{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:1rem;transition:border-color 0.2s;box-shadow:var(--shadow);}
+  .resumo-vend-card:hover{border-color:rgba(255,255,255,0.12);}
+  html.light .resumo-vend-card:hover{border-color:rgba(0,0,0,0.12);}
+  .resumo-vend-name{font-size:0.72rem;font-weight:600;color:var(--text);margin-bottom:0.6rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .resumo-vend-pos{font-family:'Inter',sans-serif;font-size:0.65rem;font-weight:700;margin-bottom:0.5rem;}
+  .resumo-stat-row{display:flex;justify-content:space-between;align-items:center;padding:0.2rem 0;border-bottom:1px solid var(--border);}
+  .resumo-stat-row:last-child{border-bottom:none;}
+  .resumo-stat-label{font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;}
+  .resumo-stat-val{font-size:0.68rem;font-weight:600;font-family:'Inter',sans-serif;}
+  .badge-7030-ok{color:var(--pos-color);font-size:0.62rem;}
+  .badge-7030-nok{color:var(--neg-color);font-size:0.62rem;}
+
+  /* COMPARADAS */
+  .comp-table{width:100%;border-collapse:collapse;}
+  .comp-table th{font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);text-align:left;padding:0.75rem 1rem;border-bottom:1px solid var(--border);white-space:nowrap;background:var(--table-head-bg);}
+  .comp-table td{padding:0.75rem 1rem;font-size:0.72rem;border-bottom:1px solid var(--border);vertical-align:middle;}
+  .comp-table tr:hover td{background:var(--table-row-hover);}
+  .btn-toggle-gerente{padding:0.4rem 1rem;border-radius:6px;font-family:'Inter',sans-serif;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;border:1px solid var(--accent2);background:rgba(255,107,53,0.1);color:var(--accent2);transition:all 0.2s;margin-left:auto;}
+  .btn-toggle-gerente.hidden{background:rgba(100,116,139,0.1);color:var(--muted);border-color:var(--border);}
+  html.light .btn-toggle-gerente{background:rgba(224,92,27,0.07);}
+  .comp-table tr:last-child td{border-bottom:none;}
+  .status-row-green{border-left:3px solid var(--pos-color);}
+  .status-row-yellow{border-left:3px solid var(--accent4);}
+  .status-row-red{border-left:3px solid var(--neg-color);}
+  .yoy-green{color:var(--pos-color);font-weight:600;}
+  .yoy-yellow{color:var(--accent4);font-weight:600;}
+  .yoy-red{color:var(--neg-color);font-weight:600;}
+
+  /* TV MODE */
+  .btn-tv{padding:0.5rem 1.1rem;background:rgba(167,139,250,0.08);color:#a78bfa;border:1px solid rgba(167,139,250,0.3);border-radius:8px;font-family:'Inter',sans-serif;font-size:0.72rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+  .btn-tv:hover{background:rgba(167,139,250,0.18);}
+  .btn-tv.tv-on{background:rgba(167,139,250,0.2);color:#c4b5fd;border-color:rgba(167,139,250,0.6);animation:pulse-tv 2s infinite;}
+  @keyframes pulse-tv{0%,100%{box-shadow:0 0 0 0 rgba(167,139,250,0.4);}50%{box-shadow:0 0 0 6px rgba(167,139,250,0);}}
+
+  /* POSITIVO / NEGATIVO — cores semânticas */
+  .val-pos{color:var(--pos-color);font-weight:600;}
+  .val-neg{color:var(--neg-color);font-weight:600;}
+
+  @media(max-width:1100px){
+    .kpi-grid{grid-template-columns:repeat(2,1fr);}
+    .main-grid{grid-template-columns:1fr;}
+  }
+  @media(max-width:768px){
+    #curva-lojas-grid{grid-template-columns:1fr !important;}
+    .kpi-grid{grid-template-columns:repeat(2,1fr) !important;}
+    header{padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;}
+    .badge-live{font-size:0.6rem;padding:0.25rem 0.5rem;}
+    .btn-tv,.btn-theme{font-size:0.65rem;padding:0.4rem 0.75rem;}
+    .upload-section{padding:0.75rem 1rem;}
+    .grupo-bar{padding:0.5rem 1rem;gap:0.4rem;}
+    .grupo-btn{font-size:0.65rem;padding:0.35rem 0.65rem;}
+    .tab-nav{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;padding:0 0.75rem;gap:0.25rem;border-bottom:1px solid var(--border);}
+    .tab-nav::-webkit-scrollbar{display:none;}
+    .tab-btn{flex:0 0 auto;scroll-snap-align:start;font-size:0.65rem;padding:0.6rem 0.85rem;white-space:nowrap;}
+    .kpi-grid{grid-template-columns:repeat(2,1fr);gap:0.5rem;padding:0.75rem;}
+    .kpi{padding:0.75rem;}
+    .kpi-val{font-size:1.3rem;}
+    .main-grid{grid-template-columns:1fr;gap:0.75rem;padding:0 0.75rem;}
+    .bottom-grid{grid-template-columns:1fr;gap:0.75rem;padding:0 0.75rem;}
+    .card{padding:0.85rem;}
+    .rank-table{font-size:0.65rem;}
+    .comp-table{font-size:0.6rem;}
+    .store-grid{grid-template-columns:1fr;}
+    .resumo-vend-grid{grid-template-columns:1fr;}
+    .chart-wrap{height:180px;}
+    .sub-tab-nav{width:100%;}
+    .sub-tab-btn{flex:1;text-align:center;font-size:0.65rem;padding:0.4rem 0.6rem;}
+  }
+  @media(max-width:650px){.kpi-grid{grid-template-columns:1fr 1fr;}.bottom-grid{grid-template-columns:1fr;}.wrap{padding:1rem;}.tab-btn{padding:0.6rem 1rem;font-size:0.7rem;}}
+
+  .btn-relatorio{padding:0.45rem 1rem;border-radius:8px;font-family:'Inter',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;border:1px solid rgba(244,114,182,0.4);background:rgba(244,114,182,0.08);color:#f472b6;transition:all 0.2s;white-space:nowrap;}
+  .btn-relatorio:hover{background:rgba(244,114,182,0.18);border-color:#f472b6;}
+  html.light .btn-relatorio{border-color:rgba(180,60,140,0.35);background:rgba(180,60,140,0.06);color:#b43c8c;}
+  .modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;pointer-events:none;}
+  .modal-overlay.open{pointer-events:all;}
+  html.light .modal-overlay{background:rgba(0,0,0,0.45);}
+  .modal-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:2rem;width:min(520px,94vw);max-height:88vh;overflow-y:auto;transform:translateY(16px) scale(0.98);transition:transform 0.25s;box-shadow:0 24px 64px rgba(0,0,0,0.5);}
+  html.light .modal-box{box-shadow:0 8px 32px rgba(0,0,0,0.15);}
+  .modal-overlay.open .modal-box{transform:none;}
+  .modal-title{font-size:1.05rem;font-weight:800;color:var(--text);margin-bottom:0.25rem;}
+  .modal-sub{font-size:0.72rem;color:var(--muted);margin-bottom:1.5rem;}
+  .modal-section{font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin:1.2rem 0 0.6rem;}
+  .loja-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;}
+  .loja-radio{display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0.85rem;border-radius:8px;border:1px solid var(--border);background:var(--card2);cursor:pointer;transition:all 0.15s;font-size:0.72rem;color:var(--text);}
+  .loja-radio:hover{border-color:var(--accent);}
+  .loja-radio.selected{border-color:var(--accent);background:rgba(0,255,224,0.06);}
+  html.light .loja-radio.selected{background:rgba(0,119,204,0.06);}
+  .loja-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .modal-footer{display:flex;justify-content:flex-end;gap:0.75rem;margin-top:1.75rem;padding-top:1.25rem;border-top:1px solid var(--border);}
+  .btn-modal-cancel{padding:0.55rem 1.2rem;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-family:'Inter',sans-serif;font-size:0.72rem;cursor:pointer;}
+  .btn-modal-cancel:hover{color:var(--text);}
+  .btn-modal-gerar{padding:0.55rem 1.4rem;border-radius:8px;border:1px solid rgba(244,114,182,0.5);background:rgba(244,114,182,0.12);color:#f472b6;font-family:'Inter',sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;}
+  html.light .btn-modal-gerar{border-color:rgba(180,60,140,0.4);background:rgba(180,60,140,0.07);color:#b43c8c;}
+  .btn-modal-gerar:hover{background:rgba(244,114,182,0.22);}
+  .btn-modal-gerar:disabled{opacity:0.4;cursor:not-allowed;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- MODAL RELATÓRIO -->
+<div class="modal-overlay" id="modal-relatorio" onclick="fecharModalSeFora(event)">
+  <div class="modal-box">
+    <div class="modal-title">📄 Gerar Relatório por Loja</div>
+    <div class="modal-sub">Selecione o grupo e a loja para gerar o relatório em PDF.</div>
+    <div class="modal-section">Grupo</div>
+    <div style="display:flex;gap:0.5rem;" id="modal-grupo-btns">
+            <button class="loja-radio selected" style="flex:1" onclick="setModalGrupo('LOJAS',this)">🏪 Lojas</button>
+      <button class="loja-radio" style="flex:1" onclick="setModalGrupo('OTICAS',this)">👓 Óticas</button>
+    </div>
+    <div class="modal-section">Loja</div>
+    <div class="loja-grid" id="modal-lojas-grid"></div>
+    <div class="modal-footer">
+      <button class="btn-modal-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-modal-gerar" id="btn-modal-gerar" onclick="gerarRelatorio()" disabled>📄 Gerar PDF</button>
+    </div>
+  </div>
+</div>
+
+  <!-- HEADER -->
+  <header>
+    <div class="brand" style="display:flex;align-items:center;gap:1.25rem;">
+      <div style="width:48px;height:48px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-size:1.1rem;font-weight:900;color:#000;">📊</div>
+      <div style="display:flex;flex-direction:column;justify-content:center;">
+        <span style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.15em;margin-top:0.2rem;">Dashboard de Indicadores de Vendas</span>
+        <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.06em;margin-top:0.15rem;opacity:0.6;">Feito com carinho, pelo Grupo Kuhn ♥</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+      <button class="btn-relatorio" onclick="abrirModalRelatorio()">📄 Relatório PDF</button>
+      <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Alternar tema claro/escuro">
+        <span class="theme-icon" id="theme-icon">☀️</span>
+        <span id="theme-label">Tema Claro</span>
+      </button>
+      <button class="btn-tv" id="btn-tv" onclick="toggleTVMode()" title="Modo TV — rotação automática de abas">📺 Modo TV</button>
+      <span class="badge-live" id="badge-live">Dados Carregados</span>
+      <span style="padding:0.35rem 0.75rem;border-radius:999px;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;background:rgba(167,139,250,0.1);color:var(--accent3);border:1px solid rgba(167,139,250,0.25);">V4</span>
+    </div>
+  </header>
+
+  <!-- UPLOAD -->
+  <div class="upload-section">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+      <div>
+        <p><strong>🔗 Conectado à sua planilha Google Sheets</strong></p>
+        <p id="status-msg" style="margin-top:0.25rem">Clique em "Atualizar" para buscar os dados mais recentes.</p>
+      </div>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-refresh" id="btn-refresh" onclick="loadFromSheets()">🔄 Atualizar Dados</button>
+        <button class="btn" style="background:rgba(255,255,255,0.04);color:var(--muted);border-color:var(--border)" onclick="document.getElementById('fileInput').click()">📂 Upload CSV</button>
+        <input type="file" id="fileInput" accept=".csv,.tsv,.txt" onchange="loadFromFile(event)" style="display:none">
+      </div>
+    </div>
+    <div id="progress-bar" style="height:2px;background:var(--border);border-radius:999px;overflow:hidden;display:none;">
+      <div id="progress-fill" style="height:100%;width:0%;background:var(--accent);transition:width 0.4s ease;border-radius:999px;"></div>
+    </div>
+  </div>
+
+  <!-- GRUPO SELECTOR -->
+  <div class="grupo-bar" id="grupoBar">
+        <button class="grupo-btn active-all" onclick="setGrupo('TODAS',this)">🏪 Todas</button>
+    <button class="grupo-btn" onclick="setGrupo('LOJAS',this)">🏪 Lojas</button>
+    <button class="grupo-btn" onclick="setGrupo('OTICAS',this)">👓 Óticas</button>
+  </div>
+
+  <!-- TAB NAV -->
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="indicadores" onclick="switchTab('indicadores',this)">
+      <span class="tab-icon">📊</span> Indicadores
+    </button>
+    <button class="tab-btn" data-tab="curva" onclick="switchTab('curva',this)">
+      <span class="tab-icon">📈</span> Curva de Venda
+    </button>
+    <button class="tab-btn" data-tab="resumo" onclick="switchTab('resumo',this)">
+      <span class="tab-icon">📋</span> Resumo
+    </button>
+    <button class="tab-btn" data-tab="comparadas" onclick="switchTab('comparadas',this)">
+      <span class="tab-icon">🔀</span> Comparadas Peças
+    </button>
+    <button class="tab-btn" data-tab="dezena" onclick="switchTab('dezena',this)">
+      <span class="tab-icon">🗓️</span> Resumo Dezena
+    </button>
+    <button class="tab-btn" data-tab="termometro" onclick="switchTab('termometro',this)">
+      <span class="tab-icon">🌡️</span> Termômetro Peças
+    </button>
+  </div>
+
+  <!-- ========== ABA INDICADORES (Vendas + PA + TM unificado) ========== -->
+  <div class="tab-panel active" data-panel="indicadores" id="panel-indicadores">
+
+    <!-- FILTRO DE LOJA + TOGGLE GERENTES -->
+    <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;">
+      <div class="filter-bar" id="filter-indicadores" style="margin-bottom:0;flex:1;flex-wrap:wrap;"></div>
+      <button class="btn-toggle-gerente" id="btn-gerente-indicadores" onclick="toggleGerenteIndicadores(this)" title="Alterna visibilidade dos gerentes no ranking">🚩 Gerentes: Visíveis</button>
+    </div>
+
+    <!-- SUB-TABS: Vendas / PA / TM -->
+    <div class="sub-tab-nav">
+      <button class="sub-tab-btn active-vendas" id="st-vendas" onclick="switchSubTab('vendas',this)">💰 Vendas</button>
+      <button class="sub-tab-btn" id="st-pa"     onclick="switchSubTab('pa',this)">📦 PA — Peças/Atend.</button>
+      <button class="sub-tab-btn" id="st-tm"     onclick="switchSubTab('tm',this)">🎯 TM — Ticket Médio</button>
+    </div>
+
+    <!-- === VENDAS === -->
+    <div id="sub-vendas">
+      <div class="kpi-grid">
+        <div class="kpi kpi-a"><label>Total de Vendas</label><div class="kpi-val" id="v-total">—</div><div class="kpi-sub" id="v-total-sub">Todas as lojas</div></div>
+        <div class="kpi kpi-c"><label>Ticket Médio Geral</label><div class="kpi-val" id="v-ticket">—</div><div class="kpi-sub">Média dos vendedores</div></div>
+        <div class="kpi kpi-d"><label>Vendedores</label><div class="kpi-val" id="v-count">—</div><div class="kpi-sub">Em ranking</div></div>
+      </div>
+      <div class="main-grid">
+        <div class="card">
+          <div class="card-title">Ranking — Valor de Vendas</div>
+          <table class="rank-table">
+            <thead><tr><th>#</th><th>Vendedor</th><th>Loja</th><th>Diferença</th><th>Vendas</th></tr></thead>
+            <tbody id="rank-vendas"></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-title">Distribuição por Loja</div>
+          <div class="chart-wrap"><canvas id="chart-lojas-vendas"></canvas></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:1rem">
+        <div class="card-title">Resumo por Loja</div>
+        <div class="store-grid" id="store-cards-vendas"></div>
+      </div>
+    </div>
+
+    <!-- === PA === -->
+    <div id="sub-pa" style="display:none">
+      <div class="kpi-grid">
+        <div class="kpi kpi-a"><label>Total de Peças</label><div class="kpi-val" id="pa-total">—</div><div class="kpi-sub">Soma de itens vendidos</div></div>
+        <div class="kpi kpi-c"><label>PA Médio</label><div class="kpi-val" id="pa-medio">—</div><div class="kpi-sub">Peças por atendimento</div></div>
+        <div class="kpi kpi-b"><label>Maior PA</label><div class="kpi-val" id="pa-max">—</div><div class="kpi-sub" id="pa-max-nome">—</div></div>
+        <div class="kpi kpi-d"><label>Vendedores</label><div class="kpi-val" id="pa-count">—</div><div class="kpi-sub">Em ranking</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title pa-accent">Ranking — PA (Peças/Atendimento)</div>
+        <table class="rank-table">
+          <thead><tr><th>#</th><th>Vendedor</th><th>Loja</th><th>Peças</th><th>PA</th></tr></thead>
+          <tbody id="rank-pa"></tbody>
+        </table>
+      </div>
+      <div class="card" style="margin-top:1rem">
+        <div class="card-title pa-accent">PA Médio por Loja</div>
+        <div class="store-grid" id="store-cards-pa"></div>
+      </div>
+    </div>
+
+    <!-- === TM === -->
+    <div id="sub-tm" style="display:none">
+      <div class="kpi-grid">
+        <div class="kpi kpi-a"><label>TM Geral</label><div class="kpi-val" id="tm-geral">—</div><div class="kpi-sub">Ticket médio global</div></div>
+        <div class="kpi kpi-d"><label>Maior TM</label><div class="kpi-val" id="tm-max">—</div><div class="kpi-sub" id="tm-max-nome">—</div></div>
+        <div class="kpi kpi-b"><label>Menor TM</label><div class="kpi-val" id="tm-min">—</div><div class="kpi-sub" id="tm-min-nome">—</div></div>
+        <div class="kpi kpi-c"><label>Vendedores</label><div class="kpi-val" id="tm-count">—</div><div class="kpi-sub">Em ranking</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title tm-accent">Ranking — Ticket Médio</div>
+        <table class="rank-table">
+          <thead><tr><th>#</th><th>Vendedor</th><th>Loja</th><th>Nº Vendas</th><th>TM</th></tr></thead>
+          <tbody id="rank-tm"></tbody>
+        </table>
+      </div>
+      <div class="card" style="margin-top:1rem">
+        <div class="card-title tm-accent">TM Médio por Loja</div>
+        <div class="store-grid" id="store-cards-tm"></div>
+      </div>
+    </div>
+
+  </div><!-- /indicadores -->
+
+  <!-- ========== ABA CURVA ========== -->
+  <div class="tab-panel" data-panel="curva" id="panel-curva">
+    <div class="kpi-grid">
+      <div class="kpi kpi-a"><label>Faturado Total</label><div class="kpi-val" id="curva-fat-total">—</div><div class="kpi-sub">Todas as lojas</div></div>
+      <div class="kpi kpi-b"><label>Curva Esperada</label><div class="kpi-val" id="curva-esp-total">—</div><div class="kpi-sub">Até hoje</div></div>
+      <div class="kpi kpi-c"><label>Desvio Total</label><div class="kpi-val" id="curva-desvio">—</div><div class="kpi-sub" id="curva-desvio-pct">vs curva</div></div>
+      <div class="kpi kpi-d"><label>Lojas na Curva</label><div class="kpi-val" id="curva-ok">—</div><div class="kpi-sub">de 8 lojas</div></div>
+    </div>
+    <div class="card" style="margin-bottom:1rem">
+      <div class="card-title" style="margin-bottom:1.5rem">Status por Loja — Curva vs Realizado</div>
+      <div id="curva-lojas-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;"></div>
+    </div>
+    <div class="main-grid">
+      <div class="card">
+        <div class="card-title">Faturamento Diário por Loja</div>
+        <div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;" id="curva-loja-selector"></div>
+        <div class="chart-wrap" style="height:280px"><canvas id="chart-curva-diario"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Meta Diária Recalculada</div>
+        <table class="rank-table" id="table-meta-recalc">
+          <thead><tr><th>Loja</th><th>Meta Mês</th><th>Faturado</th><th>Desvio</th><th>Meta/Dia Recalc.</th></tr></thead>
+          <tbody id="tbody-meta-recalc"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== ABA RESUMO ========== -->
+  <div class="tab-panel" data-panel="resumo" id="panel-resumo">
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-bottom:1.5rem;">
+      <span style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Visão:</span>
+      <button class="filter-btn active" id="resumo-btn-mes" onclick="setResumoVis('mes',this)">📅 Mês</button>
+      <button class="filter-btn" id="resumo-btn-dez1" onclick="setResumoVis('dez1',this)">1ª Dezena (01–10)</button>
+      <button class="filter-btn" id="resumo-btn-dez2" onclick="setResumoVis('dez2',this)">2ª Dezena (11–20)</button>
+      <button class="filter-btn" id="resumo-btn-dez3" onclick="setResumoVis('dez3',this)">3ª Dezena (21–fim)</button>
+    </div>
+    <div id="resumo-content"></div>
+  </div>
+
+  <!-- ========== ABA COMPARADAS ========== -->
+  <div class="tab-panel" data-panel="comparadas" id="panel-comparadas">
+    <div id="comp-container"></div>
+  </div>
+
+  <!-- ========== ABA RESUMO DEZENA ========== -->
+  <div class="tab-panel" data-panel="dezena" id="panel-dezena">
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1.5rem;">
+      <span style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Selecionar Dezena:</span>
+      <button class="filter-btn active" id="dez-btn-1" onclick="setDezena(1,this)">🗓️ 1ª Dezena (01–10)</button>
+      <button class="filter-btn" id="dez-btn-2" onclick="setDezena(2,this)">🗓️ 2ª Dezena (11–20)</button>
+      <button class="filter-btn" id="dez-btn-3" onclick="setDezena(3,this)">🗓️ 3ª Dezena (21–fim)</button>
+    </div>
+    <div id="dezena-content"><p style="color:var(--muted);padding:2rem">Clique em 🔄 Atualizar Dados para carregar.</p></div>
+  </div>
+
+  <!-- ========== ABA TERMÔMETRO DE PEÇAS ========== -->
+  <div class="tab-panel" data-panel="termometro" id="panel-termometro">
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1.5rem;">
+      <span style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Filtrar grupo:</span>
+            <button class="filter-btn active" id="term-btn-todas" onclick="setTermGrupo('TODAS',this)">Todas</button>
+      <button class="filter-btn" id="term-btn-verm" onclick="setTermGrupo('LOJAS',this)">🏪 Lojas</button>
+      <button class="filter-btn" id="term-btn-otica" onclick="setTermGrupo('OTICAS',this)">👓 Óticas</button>
+    </div>
+    <div id="termometro-content"><p style="color:var(--muted);padding:2rem">Clique em 🔄 Atualizar Dados para carregar.</p></div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+// ===== TEMA =====
+let isDark = true;
+function toggleTheme() {
+  isDark = !isDark;
+  document.documentElement.classList.toggle("light", !isDark);
+  const icon  = document.getElementById("theme-icon");
+  const label = document.getElementById("theme-label");
+  icon.textContent  = isDark ? "☀️" : "🌙";
+  label.textContent = isDark ? "Tema Claro" : "Tema Escuro";
+  // Redesenha charts pois cores mudam
+  setTimeout(() => {
+    renderVendas(); renderPA(); renderTM(); renderCurvaChart();
+  }, 50);
+}
+
+// ===== SUB-TABS =====
+let subTabAtiva = "vendas";
+function switchSubTab(tab, btn) {
+  subTabAtiva = tab;
+  ["vendas","pa","tm"].forEach(t => {
+    document.getElementById("sub-"+t).style.display = t===tab ? "" : "none";
+  });
+  document.querySelectorAll(".sub-tab-btn").forEach(b => {
+    b.className = "sub-tab-btn";
+  });
+  btn.className = "sub-tab-btn active-" + tab;
+  // re-render
+  if(tab==="vendas") renderVendas();
+  if(tab==="pa")     renderPA();
+  if(tab==="tm")     renderTM();
+}
+
+// ===== DADOS =====
+const STORE_MAP = {
+  // Formato: "NOME DO VENDEDOR (código)": "NOME DA LOJA",
+  "ELIANA GOMES BORBOSA (104)": "AMAPA GARDEN SHOP LJ",
+  "JHENIFER CHAVES DA SILVA (95)": "AMAPA GARDEN SHOP LJ",
+  "JENNIFER CAROLINA BARBOSA QUEIROZ (112)": "AMAPA GARDEN SHOP LJ",
+  "DAVI VALES DE SOUZA (116)": "AMAPA GARDEN SHOP LJ",
+  "Jennifer Maria (105)": "SHOP MACAPA LJ",
+  "WADERSON GABRIEL (107)": "SHOP MACAPA LJ",
+  "MATHEUS PINHEIRO AMARAL (108)": "SHOP MACAPA LJ",
+  "ANA VITÓRIA (115)": "SHOP MACAPA LJ",
+  "ALANA SANTOS (71)": "MACAPA LJR",
+  "TINA FERNANDES (88)": "MACAPA LJR",
+  "Clicia Nascimento dos Anjos (93)": "OTICA SHOP MACAPA LJ",
+  "Luana Cardoso (113)": "OTICA SHOP MACAPA LJ",
+  "Bruno Ruiz (102)": "OTICA SHOP MACAPA LJ",
+  "Catiane da Silva Andrade (100)": "OTICA SHOP MACAPA LJ",
+};
+
+  // Lookup por código numérico — imutável, evita confusão entre nomes parecidos
+const STORE_MAP_BY_CODE = (() => {
+  const m = {};
+  Object.entries(STORE_MAP).forEach(([nome, loja]) => {
+    const match = nome.match(/\((\d+)\)\s*$/);
+    if (match) m[match[1]] = loja;
+  });
+  return m;
+})();
+
+const RAW = [
+  // Dados de demonstração — substituídos automaticamente ao clicar em "Atualizar Dados"
+  {nome:"ELIANA GOMES BORBOSA (104)", pecas:80, ppv:2.00, vendas:3000.00, ticket:600.00},
+  {nome:"JHENIFER CHAVES DA SILVA (95)", pecas:80, ppv:2.00, vendas:3000.00, ticket:600.00},
+  {nome:"JENNIFER CAROLINA BARBOSA QUEIROZ (112)", pecas:80, ppv:2.00, vendas:3000.00, ticket:600.00},
+  {nome:"DAVI VALES DE SOUZA (116)", pecas:80, ppv:2.00, vendas:3000.00, ticket:600.00},
+  {nome:"Jennifer Maria (105)", pecas:80, ppv:2.00, vendas:3000.00, ticket:600.00},
+  {nome:"WADERSON GABRIEL (107)", pecas:80, ppv:2.00, vendas:3000.00, ticket:600.00},
+  {nome:"MATHEUS PINHEIRO AMARAL (108)", pecas:80, ppv:2.00, vendas:3000.00, ticket:600.00},
+  {nome:"ANA VITÓRIA (115)", pecas:80, ppv:2.00, vendas:3000.00, ticket:600.00},
+  {nome:"ALANA SANTOS (71)", pecas:80, ppv:2.00, vendas:3000.00, ticket:600.00},
+  {nome:"TINA FERNANDES (88)", pecas:80, ppv:2.00, vendas:3000.00, ticket:600.00},
+  {nome:"Clicia Nascimento dos Anjos (93)", pecas:80, ppv:2.00, vendas:3000.00, ticket:600.00},
+  {nome:"Luana Cardoso (113)", pecas:80, ppv:2.00, vendas:3000.00, ticket:600.00},
+  {nome:"Bruno Ruiz (102)", pecas:80, ppv:2.00, vendas:3000.00, ticket:600.00},
+  {nome:"Catiane da Silva Andrade (100)", pecas:80, ppv:2.00, vendas:3000.00, ticket:600.00},
+];
+
+let allData = RAW.map(d=>({...d, loja: STORE_MAP[d.nome]||"—"})).filter(d => !d.nome.toUpperCase().includes("LOJA VENDA"));
+const filters = {indicadores:"TODAS"};
+const charts  = {};
+
+// ===== HELPERS =====
+const fmtR = v => "R$\u00a0"+v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtN = v => v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+const isGerente = full => /^GERENTE\s/i.test(full.trim());
+
+// ===== GERENTE TOGGLE (unificado) =====
+let gerenteVisible = true;
+function toggleGerenteIndicadores(btn) {
+  gerenteVisible = !gerenteVisible;
+  btn.textContent = `🚩 Gerentes: ${gerenteVisible ? 'Visíveis' : 'Ocultos'}`;
+  btn.classList.toggle('hidden', !gerenteVisible);
+  renderVendas(); renderPA(); renderTM();
+}
+
+// Helper SC via CSS vars (compatível claro/escuro)
+function scColors(loja) {
+  const map = {
+    "AMAPA GARDEN SHOP LJ": {bgVar:"--atm-bg", bdVar:"--atm-bd", txVar:"--atm-tx", cls:"store-atm"},
+    "SHOP MACAPA LJ": {bgVar:"--pba-bg", bdVar:"--pba-bd", txVar:"--pba-tx", cls:"store-pba"},
+    "MACAPA LJR": {bgVar:"--ljr-bg", bdVar:"--ljr-bd", txVar:"--ljr-tx", cls:"store-ljr"},
+    "OTICA SHOP MACAPA LJ": {bgVar:"--par-bg", bdVar:"--par-bd", txVar:"--par-tx", cls:"store-paraiso"},
+    "—": {bgVar:null, bdVar:null, txVar:null, cls:"store-n"},
+  };
+  return map[loja] || map["—"];
+}
+function getVar(varName) {
+  return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+}
+function sc(loja) {
+  const c = scColors(loja);
+  return {
+    bg:  c.bgVar  ? getVar(c.bgVar)  : "rgba(100,116,139,0.12)",
+    bd:  c.bdVar  ? getVar(c.bdVar)  : "rgba(100,116,139,0.5)",
+    tx:  c.txVar  ? getVar(c.txVar)  : "#64748b",
+    cls: c.cls,
+  };
+}
+
+const shortName = full => {
+  const c = full.replace(/\s*\(\d+\)\s*$/,"").replace(/^GERENTE\s+/i,"");
+  const p = c.split(" ");
+  const name = p.length<=2 ? c : p[0]+" "+p[p.length-1];
+  return isGerente(full) ? name + " 🚩" : name;
+};
+const storeStats = data => {
+  const s={};
+  data.forEach(d=>{
+    if(!s[d.loja]) s[d.loja]={vendas:0,pecas:0,ppvSum:0,ticketSum:0,count:0};
+    s[d.loja].vendas    += d.vendas;
+    s[d.loja].pecas     += d.pecas;
+    s[d.loja].ppvSum    += d.ppv||0;
+    s[d.loja].ticketSum += d.ticket||0;
+    s[d.loja].count++;
+  });
+  return s;
+};
+const posClass = i => i===0?"pos-1":i===1?"pos-2":i===2?"pos-3":"pos-n";
+const posBadge = (i,v) => `<span class="pos-badge ${posClass(i)}">${v}</span>`;
+
+function mkChart(id, type, labels, vals, colors, borders, xFmt, destroyKey) {
+  if(!document.getElementById(id)) return;
+  if(charts[destroyKey]) charts[destroyKey].destroy();
+  const isDarkMode = !document.documentElement.classList.contains("light");
+  const legendColor = isDarkMode ? "#94a3b8" : "#64748b";
+  charts[destroyKey] = new Chart(document.getElementById(id).getContext("2d"),{
+    type,
+    data:{labels,datasets:[{data:vals,backgroundColor:colors,borderColor:borders,borderWidth:2,hoverOffset:8,borderRadius:type==="bar"?6:0}]},
+    options:{
+      indexAxis: type==="bar"?"y":undefined,
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend: type==="doughnut"?{position:"right",labels:{color:legendColor,font:{family:"Inter",size:10},boxWidth:10,padding:12}}:{display:false},
+        tooltip:{callbacks:{label:c=>` ${xFmt(c.raw)}`},bodyFont:{family:"Inter"}}
+      },
+      scales: type==="bar"?{
+        x:{grid:{color:"rgba(128,128,128,0.08)"},ticks:{color:legendColor,font:{family:"Inter",size:9},callback:v=>xFmt(v)}},
+        y:{grid:{display:false},ticks:{color:legendColor,font:{family:"Inter",size:10}}}
+      }:undefined
+    }
+  });
+}
+
+// ===== FILTROS =====
+function filteredGrupo(tab) {
+  let data = filters.indicadores==="TODAS" ? allData : allData.filter(d=>d.loja===filters.indicadores);
+  if(grupoAtivo !== "TODAS") {
+    const lojas = GRUPOS[grupoAtivo];
+    data = data.filter(d => lojas.includes(d.loja));
+  }
+  return data;
+}
+
+// ===== RENDER VENDAS =====
+function renderVendas() {
+  const data = filteredGrupo("indicadores");
+  const sorted = [...data].sort((a,b)=>b.vendas-a.vendas);
+  const rankData = gerenteVisible ? sorted : sorted.filter(d=>!isGerente(d.nome));
+  const max = rankData[0]?.vendas||sorted[0]?.vendas||1;
+
+  document.getElementById("v-total").textContent = fmtR(data.reduce((s,d)=>s+d.vendas,0));
+  const tks = data.filter(d=>d.ticket>0).map(d=>d.ticket);
+  document.getElementById("v-ticket").textContent = tks.length ? fmtR(tks.reduce((a,b)=>a+b,0)/tks.length) : "—";
+  document.getElementById("v-count").textContent = rankData.length;
+
+  document.getElementById("rank-vendas").innerHTML = rankData.map((d,i)=>{
+    const prev = rankData[i-1];
+    const difVal = i === 0
+      ? '<span class="val-pos" style="font-size:0.62rem">★ lider</span>'
+      : `<span class="val-neg" style="font-size:0.68rem">-${fmtR(prev.vendas - d.vendas)}</span>`;
+    return `<tr>
+      <td>${posBadge(i,i+1)}</td>
+      <td><div class="seller-name">${shortName(d.nome)}</div>
+          <div class="mini-bar-wrap"><div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${(d.vendas/max)*100}%;background:${sc(d.loja).bd}"></div></div></div></td>
+      <td><span class="store-tag ${sc(d.loja).cls}">${d.loja}</span></td>
+      <td>${difVal}</td>
+      <td class="val-cell">${fmtR(d.vendas)}</td>
+    </tr>`;
+  }).join("");
+
+  const stats = storeStats(data);
+  const stores = Object.keys(stats).filter(s=>s!=="—").sort((a,b)=>stats[b].vendas-stats[a].vendas);
+  mkChart("chart-lojas-vendas","doughnut",stores,stores.map(s=>stats[s].vendas),stores.map(s=>sc(s).bg),stores.map(s=>sc(s).bd),fmtR,"lojasV");
+
+  document.getElementById("store-cards-vendas").innerHTML = stores.map(s=>`
+    <div class="store-card" style="border-color:${sc(s).bd}33">
+      <div class="store-card-name" style="color:${sc(s).tx}">${s}</div>
+      <div class="store-card-val">${fmtR(stats[s].vendas)}</div>
+      <div class="store-card-sub">${stats[s].count} vendedor(es) · ${stats[s].pecas} peças</div>
+    </div>`).join("");
+}
+
+// ===== RENDER PA =====
+function renderPA() {
+  const data = filteredGrupo("indicadores");
+  const allSorted = [...data].filter(d=>d.ppv>0).sort((a,b)=>b.ppv-a.ppv);
+  const sorted = gerenteVisible ? allSorted : allSorted.filter(d=>!isGerente(d.nome));
+  const max = sorted[0]?.ppv||allSorted[0]?.ppv||1;
+
+  document.getElementById("pa-total").textContent = data.reduce((s,d)=>s+d.pecas,0).toLocaleString("pt-BR");
+  const avgPA = allSorted.length ? allSorted.reduce((s,d)=>s+d.ppv,0)/allSorted.length : 0;
+  document.getElementById("pa-medio").textContent = fmtN(avgPA);
+  if(allSorted[0]){
+    document.getElementById("pa-max").textContent = fmtN(allSorted[0].ppv);
+    document.getElementById("pa-max-nome").textContent = shortName(allSorted[0].nome);
+  }
+  document.getElementById("pa-count").textContent = sorted.length;
+
+  document.getElementById("rank-pa").innerHTML = sorted.map((d,i)=>`<tr>
+    <td>${posBadge(i,i+1)}</td>
+    <td><div class="seller-name">${shortName(d.nome)}</div>
+        <div class="mini-bar-wrap"><div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${(d.ppv/max)*100}%;background:var(--accent3)"></div></div></div></td>
+    <td><span class="store-tag ${sc(d.loja).cls}">${d.loja}</span></td>
+    <td style="color:var(--muted);font-size:0.68rem">${d.pecas}</td>
+    <td class="val-cell-pa">${fmtN(d.ppv)}</td>
+  </tr>`).join("");
+
+  const stats = storeStats(data);
+  const stores = Object.keys(stats).filter(s=>s!=="—").sort((a,b)=>(stats[b].ppvSum/stats[b].count)-(stats[a].ppvSum/stats[a].count));
+  document.getElementById("store-cards-pa").innerHTML = stores.map(s=>{
+    const paM = (stats[s].ppvSum/stats[s].count).toFixed(2);
+    return `<div class="store-card" style="border-color:${sc(s).bd}33">
+      <div class="store-card-name" style="color:${sc(s).tx}">${s}</div>
+      <div class="store-card-val">${paM.replace(".",",")}</div>
+      <div class="store-card-sub">PA médio · ${stats[s].pecas} peças</div>
+    </div>`;
+  }).join("");
+}
+
+// ===== RENDER TM =====
+function renderTM() {
+  const data = filteredGrupo("indicadores");
+  const allSorted = [...data].filter(d=>d.ticket>0).sort((a,b)=>b.ticket-a.ticket);
+  const sorted = gerenteVisible ? allSorted : allSorted.filter(d=>!isGerente(d.nome));
+  const max = sorted[0]?.ticket||allSorted[0]?.ticket||1;
+
+  const avg = allSorted.length ? allSorted.reduce((s,d)=>s+d.ticket,0)/allSorted.length : 0;
+  document.getElementById("tm-geral").textContent  = fmtR(avg);
+  document.getElementById("tm-count").textContent  = sorted.length;
+  if(allSorted[0]){
+    document.getElementById("tm-max").textContent      = fmtR(allSorted[0].ticket);
+    document.getElementById("tm-max-nome").textContent = shortName(allSorted[0].nome);
+  }
+  const last = allSorted[allSorted.length-1];
+  if(last){
+    document.getElementById("tm-min").textContent      = fmtR(last.ticket);
+    document.getElementById("tm-min-nome").textContent = shortName(last.nome);
+  }
+
+  document.getElementById("rank-tm").innerHTML = sorted.map((d,i)=>{
+    const nVendas = d.vendas > 0 && d.ticket > 0 ? Math.round(d.vendas / d.ticket) : "—";
+    return `<tr>
+      <td>${posBadge(i,i+1)}</td>
+      <td><div class="seller-name">${shortName(d.nome)}</div>
+          <div class="mini-bar-wrap"><div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${(d.ticket/max)*100}%;background:var(--accent4)"></div></div></div></td>
+      <td><span class="store-tag ${sc(d.loja).cls}">${d.loja}</span></td>
+      <td style="color:var(--muted);font-size:0.68rem">${nVendas}</td>
+      <td class="val-cell-tm">${fmtR(d.ticket)}</td>
+    </tr>`;
+  }).join("");
+
+  const stats = storeStats(data);
+  const stores = Object.keys(stats).filter(s=>s!=="—").sort((a,b)=>(stats[b].ticketSum/stats[b].count)-(stats[a].ticketSum/stats[a].count));
+  document.getElementById("store-cards-tm").innerHTML = stores.map(s=>{
+    const tm = (stats[s].ticketSum/stats[s].count);
+    return `<div class="store-card" style="border-color:${sc(s).bd}33">
+      <div class="store-card-name" style="color:${sc(s).tx}">${s}</div>
+      <div class="store-card-val">${fmtR(tm)}</div>
+      <div class="store-card-sub">TM médio · ${stats[s].count} vendedor(es)</div>
+    </div>`;
+  }).join("");
+}
+
+// ===== FILTROS =====
+function buildFilters() {
+  const grupoLojas = GRUPOS[grupoAtivo];
+  const stores = [...new Set(allData.map(d=>d.loja))]
+    .filter(s => s!=="—" && (grupoLojas ? grupoLojas.includes(s) : true))
+    .sort();
+  const bar = document.getElementById("filter-indicadores");
+  bar.innerHTML =
+    `<button class="filter-btn active" onclick="setFilterInd('TODAS',this)">Todas</button>` +
+    stores.map(s=>`<button class="filter-btn" onclick="setFilterInd('${s}',this)">${s}</button>`).join("");
+}
+
+function setFilterInd(store, btn) {
+  filters.indicadores = store;
+  document.getElementById("filter-indicadores").querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  renderVendas(); renderPA(); renderTM();
+}
+
+// ===== TAB SWITCH =====
+let activeTab = "indicadores";
+function switchTab(tab, btn) {
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById(`panel-${tab}`).classList.add("active");
+  activeTab = tab;
+  setTimeout(()=>{
+    if(tab==="indicadores") { renderVendas(); renderPA(); renderTM(); }
+    if(tab==="curva")       renderCurva();
+    if(tab==="resumo")      renderResumo();
+    if(tab==="comparadas")  renderComparadas();
+    if(tab==="dezena")      renderDezena();
+    if(tab==="termometro")  renderTermometro();
+  }, 50);
+}
+
+// ===== CONFIG =====
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxNj92apxSCBefpBXDtGs001KagJU72lyFhqjDouT0-Q5wFKyiz4muJI0FgyYxbsDn8/exec";
+
+// ===== CACHE LOCAL =====
+const CACHE_KEY    = "gkuhn_dash_cache_v2";
+const CACHE_TTL_MS = 15 * 60 * 1000;
+
+function cacheSave(json) {
+  const mes = new Date().getMonth() + "/" + new Date().getFullYear();
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), mes, data: json })); } catch(e) {}
+}
+function cacheLoad() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if(!raw) return null;
+    const { ts, mes, data } = JSON.parse(raw);
+    const mesAtual = new Date().getMonth() + "/" + new Date().getFullYear();
+    // Invalida cache se for de outro mês
+    if(mes !== mesAtual) {
+      localStorage.removeItem(CACHE_KEY);
+      console.log("Cache de mês anterior removido automaticamente.");
+      return null;
+    }
+    const idadeMin = Math.round((Date.now() - ts) / 60000);
+    return { data, idadeMin, expirado: (Date.now() - ts) > CACHE_TTL_MS };
+  } catch(e) { return null; }
+}
+
+function setBadge(texto, cor, title) {
+  const el = document.getElementById("badge-live");
+  if(!el) return;
+  el.textContent = "● " + texto;
+  el.style.color = cor || "var(--accent)";
+  if(title) el.title = title;
+}
+function setDemoWarning(show) {
+  let el = document.getElementById("demo-banner");
+  if(show) {
+    if(!el) {
+      el = document.createElement("div");
+      el.id = "demo-banner";
+      el.style.cssText = "background:rgba(250,204,21,0.12);border:1px solid rgba(250,204,21,0.4);border-radius:8px;padding:0.6rem 1rem;margin-bottom:1rem;font-size:0.72rem;color:#b58800;display:flex;align-items:center;justify-content:space-between;gap:1rem;";
+      el.innerHTML = `<span>⚠️ <strong>Dados de demonstração</strong> — não foi possível carregar do Google Sheets. Clique em 🔄 Atualizar para tentar novamente.</span>`;
+      const wrap = document.querySelector(".wrap");
+      const upload = wrap?.querySelector(".upload-section");
+      if(upload) upload.after(el); else wrap?.prepend(el);
+    }
+    el.style.display = "flex";
+  } else {
+    if(el) el.style.display = "none";
+  }
+}
+function setStatus(msg, color) {
+  const el = document.getElementById("status-msg");
+  if(!el) return;
+  el.textContent = msg;
+  el.style.color = color || "var(--muted)";
+}
+function setProgress(pct) {
+  const bar = document.getElementById("progress-bar");
+  const fill = document.getElementById("progress-fill");
+  if(!bar||!fill) return;
+  if(pct === null) { bar.style.display="none"; fill.style.width="0%"; return; }
+  bar.style.display="block"; fill.style.width=pct+"%";
+}
+
+// ===== CSV PARSER =====
+function parseCSV(text) {
+  const sep = text.includes(";") ? ";" : ",";
+  const lines = text.trim().split(/\r?\n/);
+  if(lines.length < 2) return null;
+  const headers = lines[0].split(sep).map(h => h.trim().replace(/"/g,"").toLowerCase());
+  return lines.slice(1).map(l => {
+    const cols = l.split(sep).map(c => c.trim().replace(/"/g,""));
+    const obj = {}; headers.forEach((h,i) => obj[h] = cols[i]||""); return obj;
+  });
+}
+
+function tryMap(rows, extraLojaMap) {
+  if(!rows||!rows.length) return null;
+  const norm = s => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[\s\.\/]/g,"");
+  const H = Object.keys(rows[0]).map(h => norm(h));
+  const find = (...ks) => {
+    for(const k of ks){ const i = H.findIndex(h => h.includes(norm(k))); if(i>=0) return Object.keys(rows[0])[i]; }
+    return null;
+  };
+  const fNome = find("nome","vendedor","name");
+  const fV    = find("vlvendas","vlvenda","vendas","vl","valor","total");
+  const fP    = find("qtdepecas","qtde","pecas","quantidade");
+  const fTk   = find("ticketmedio","ticket","tm");
+  const fPPV  = find("pecasvenda","ppv","pa","pecasatend");
+  if(!fNome || !fV) return null;
+  const lojaLookup = extraLojaMap || STORE_MAP;
+  return rows.map((r,i) => ({
+    pos:    i+1,
+    nome:   r[fNome]||"",
+    pecas:  parseInt((r[fP] ||"0").replace(/[^\d]/g,""))||0,
+    vendas: parseFloat((r[fV] ||"0").replace(/[^\d,\.]/g,"").replace(",","."))||0,
+    ticket: parseFloat((r[fTk]||"0").replace(/[^\d,\.]/g,"").replace(",","."))||0,
+    ppv:    parseFloat((r[fPPV]||"0").replace(/[^\d,\.]/g,"").replace(",","."))||0,
+  loja: (() => {
+  const nome = r[fNome] || "";
+  // 1. Match exato (lookup externo ou STORE_MAP)
+  if (lojaLookup[nome]) return lojaLookup[nome];
+  if (STORE_MAP[nome])  return STORE_MAP[nome];
+  // 2. Match por código numérico — único por vendedor no ERP
+  const codeMatch = nome.match(/\((\d+)\)\s*$/);
+  if (codeMatch && STORE_MAP_BY_CODE[codeMatch[1]]) return STORE_MAP_BY_CODE[codeMatch[1]];
+  // 3. Fallback: nome sem código, sem acento, sem espaço extra — case-insensitive
+  const norm = s => s.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  const nomeSemCod = norm(nome.replace(/\s*\(\d+\)\s*$/,""));
+  const found = Object.entries(STORE_MAP).find(([k]) =>
+    norm(k.replace(/\s*\(\d+\)\s*$/,"")) === nomeSemCod
+  );
+  return found ? found[1] : "—";
+})(),
+  })).filter(d => d.nome && d.vendas > 0 && !d.nome.toUpperCase().includes("LOJA VENDA"));
+}
+
+function applyData(mapped, label, isDemo) {
+  if(!mapped || !mapped.length) {
+    setStatus("⚠️ Não reconheci as colunas. Verifique o formato da planilha.", "#f87171");
+    return;
+  }
+  allData = mapped;
+  buildFilters();
+  filters.indicadores = "TODAS";
+  renderVendas(); renderPA(); renderTM(); renderCurva(); renderResumo(); renderComparadas();
+  renderDezena(); renderTermometro();
+  const now = new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+  if(isDemo) {
+    setStatus("⚠️ Exibindo dados de demonstração — Sheets indisponível.", "#b58800");
+    setBadge("Demo", "#b58800", "Dados estáticos — clique em Atualizar");
+    setDemoWarning(true);
+  } else {
+    setStatus("✅ " + mapped.length + " vendedores carregados — atualizado às " + now, "var(--pos-color)");
+    setBadge("Ao vivo · " + now, "var(--accent)", "Dados ao vivo do Google Sheets");
+    setDemoWarning(false);
+  }
+}
+
+function loadFromSheets() {
+  const btn = document.getElementById("btn-refresh");
+  if(btn){ btn.textContent = "⏳ Carregando..."; btn.classList.add("loading"); }
+  const cached = cacheLoad();
+  if(cached && !cached.expirado) {
+    setStatus(`⚡ Cache local (${cached.idadeMin} min atrás) — atualizando em background...`, "var(--accent3)");
+  } else {
+    setStatus("Buscando dados da planilha...", "var(--muted)");
+  }
+  setProgress(30);
+
+  fetch(APPS_SCRIPT_URL, { redirect: 'follow', cache: 'no-cache' })
+    .then(r => { setProgress(70); if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(json => {
+      setProgress(100);
+      setTimeout(() => setProgress(null), 600);
+      const rows = json.indicadores;
+      if(!rows || rows.length < 2) throw new Error("Dados vazios");
+      const normH = s => String(s).trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[\s\.\/]/g,"");
+      const headers = rows[0].map(h => normH(h));
+      const headersOrig = rows[0].map(h => String(h).trim());
+      const dataRows = rows.slice(1).map(r => {
+        const obj = {};
+        headers.forEach((h,i) => { obj[h]=r[i]!==undefined?String(r[i]):""; obj[headersOrig[i]]=r[i]!==undefined?String(r[i]):""; });
+        return obj;
+      });
+      const lojaMap = {};
+      if(json.lojas && json.lojas.length > 1) {
+        let lojaAtual = "";
+        json.lojas.forEach(row => {
+          const val = String(row[0]).trim(); if(!val) return;
+          if(!/\(\d+\)/.test(val) && (row.length===1||row[1]===""||row[1]===undefined)) { lojaAtual=val; }
+          else if(lojaAtual) { lojaMap[val]=lojaAtual; const cm=val.match(/\((\d+)\)\s*$/); if(cm) lojaMap[cm[1]]=lojaAtual; }
+        });
+      }
+      lojaMapDinamico = Object.assign({}, lojaMap);
+      if(json.curva && json.curva.length > 1) {
+        try {
+          const novasCurvas = [];
+          let metaRow = null;
+          function parseDateCell(cell) {
+            const s = String(cell).trim();
+            if(!s) return null;
+            const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if(isoMatch) return isoMatch[3]+"/"+isoMatch[2];
+            const slashMatch = s.match(/^(\d{1,2})\/(\d{1,2})/);
+            if(slashMatch) return slashMatch[1].padStart(2,"0")+"/"+slashMatch[2].padStart(2,"0");
+            return null;
+          }
+          function parseVal(v) {
+            if(v===undefined||v===null||v===""||v==="-") return 0;
+            const n = parseFloat(String(v).replace(/[R$\s]/g,"").replace(/\.(?=\d{3})/g,"").replace(",",".")); return isNaN(n)?0:n;
+          }
+          json.curva.forEach(row => {
+            const dataCell = String(row[0]).trim();
+            if(dataCell.toLowerCase().includes("meta")) { metaRow = row; return; }
+            const label = parseDateCell(dataCell);
+            if(!label) return;
+            const vals = [1,2,3,4,5,6,7].map(ci => parseVal(row[ci]));
+            novasCurvas.push({data:label, vals});
+          });
+          if(metaRow) {
+            [1,2,3,4,5,6,7].forEach((ci,i) => {
+              const n = parseVal(metaRow[ci]); if(n > 0) META_MENSAL[i] = n;
+            });
+          }
+          if(novasCurvas.length > 0) {
+            CURVA_RAW.splice(0, CURVA_RAW.length, ...novasCurvas);
+            console.log("Curva carregada:", novasCurvas.length, "dias. Primeiro:", novasCurvas[0].data, "Ultimo:", novasCurvas[novasCurvas.length-1].data);
+          }
+        } catch(e) { console.warn("Erro ao processar curva:", e); }
+      }
+      if(json.baseAtual)    baseAtualData    = json.baseAtual;
+      if(json.baseAnterior) baseAnteriorData = json.baseAnterior;
+      if(json.curvaVend)    curvaVendData    = json.curvaVend;
+      if(json.faturamento)  faturamentoData  = json.faturamento;
+      if(json.termometros)  termometrosData  = json.termometros;
+      const mapped = tryMap(dataRows, lojaMap);
+      cacheSave(json);
+      applyData(mapped, "Google Sheets", false);
+    })
+    .catch((err) => {
+      setProgress(null);
+      console.error("Erro ao carregar planilha:", err);
+      const cachedFallback = cacheLoad();
+      if(cachedFallback) {
+        setStatus(`⚠️ Sheets indisponível — usando cache de ${cachedFallback.idadeMin} min atrás.`, "#b58800");
+        setBadge(`Cache · ${cachedFallback.idadeMin}min`, "#b58800", "Dados em cache");
+        setDemoWarning(false);
+        try {
+          const json = cachedFallback.data;
+          const rows = json.indicadores;
+          if(rows && rows.length > 1) {
+            const normH = s => String(s).trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[\s\.\/]/g,"");
+            const headers = rows[0].map(h => normH(h));
+            const headersOrig = rows[0].map(h => String(h).trim());
+            const dataRows = rows.slice(1).map(r => {
+              const obj = {};
+              headers.forEach((h,i) => { obj[h]=r[i]!==undefined?String(r[i]):""; obj[headersOrig[i]]=r[i]!==undefined?String(r[i]):""; });
+              return obj;
+            });
+            const lojaMap = {};
+            if(json.lojas && json.lojas.length > 1) {
+              let lojaAtual = "";
+              json.lojas.forEach(row => {
+                const val = String(row[0]).trim(); if(!val) return;
+                if(!/\(\d+\)/.test(val)&&(row.length===1||row[1]===""||row[1]===undefined)) { lojaAtual=val; }
+                else if(lojaAtual) { lojaMap[val]=lojaAtual; const cm=val.match(/\((\d+)\)\s*$/); if(cm) lojaMap[cm[1]]=lojaAtual; }
+              });
+            }
+            lojaMapDinamico = Object.assign({}, lojaMap);
+            if(json.baseAtual)    baseAtualData    = json.baseAtual;
+            if(json.baseAnterior) baseAnteriorData = json.baseAnterior;
+            if(json.curvaVend)    curvaVendData    = json.curvaVend;
+            if(json.faturamento)  faturamentoData  = json.faturamento;
+            if(json.termometros)  termometrosData  = json.termometros;
+            const mapped = tryMap(dataRows, lojaMap);
+            if(mapped && mapped.length) { applyData(mapped, "cache", false); return; }
+          }
+        } catch(e2) { console.warn("Erro ao restaurar cache:", e2); }
+      }
+      setStatus("❌ Sem conexão e sem cache — exibindo dados de demonstração.", "#c0392b");
+      applyData(allData.length ? allData : RAW.map(d=>({...d,loja:STORE_MAP[d.nome]||"—"})).filter(d=>!d.nome.toUpperCase().includes("LOJA VENDA")), "demo", true);
+    })
+    .finally(() => {
+      if(btn){ btn.textContent = "🔄 Atualizar Dados"; btn.classList.remove("loading"); }
+    });
+}
+
+function loadFromFile(e) {
+  const f = e.target.files[0]; if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    applyData(tryMap(parseCSV(ev.target.result)), f.name, false);
+    setBadge("Arquivo · " + f.name.substring(0,20), "var(--accent3)", "Dados carregados de arquivo local");
+    setDemoWarning(false);
+  };
+  reader.readAsText(f, "UTF-8");
+}
+
+// ===== CURVA DE VENDA =====
+// CONFIGURE — nomes das lojas para a aba Curva (mesma ordem das colunas no Sheets)
+const LOJAS_CURVA   = ["AMAPA GARDEN SHOP LJ","SHOP MACAPA LJ","MACAPA LJR","OTICA SHOP MACAPA LJ"];
+const CURVA_TO_LOJA = {0:"AMAPA GARDEN SHOP LJ",1:"SHOP MACAPA LJ",2:"MACAPA LJR",3:"OTICA SHOP MACAPA LJ"};
+
+// CURVA_RAW é preenchida dinamicamente pelo Sheets — não há fallback estático
+let CURVA_RAW = [];
+
+// CONFIGURE — meta mensal de cada loja (R$), mesma ordem de LOJAS_CURVA
+let META_MENSAL = [50000,50000,50000,50000];
+
+function getD1Idx() {
+  // Retorna o índice do último dia ANTERIOR a hoje com valor significativo (> 10)
+  // Usado para calcular o acumulado/desvio até ontem
+  const hoje = new Date();
+  const diaHoje = hoje.getDate();
+  const mesHoje = hoje.getMonth() + 1;
+  for(let i = CURVA_RAW.length-1; i >= 0; i--) {
+    const partes = CURVA_RAW[i].data.split("/");
+    const dia = parseInt(partes[0]);
+    const mes = parseInt(partes[1]);
+    if(mes < mesHoje || (mes === mesHoje && dia < diaHoje)) {
+      if(CURVA_RAW[i].vals.some(v => v > 10)) return i;
+    }
+  }
+  return 0;
+}
+
+function getHojeIdx() {
+  // Retorna o índice do dia de HOJE na curva (para meta recalculada do dia)
+  const hoje = new Date();
+  const diaHoje = hoje.getDate();
+  const mesHoje = hoje.getMonth() + 1;
+  for(let i = 0; i < CURVA_RAW.length; i++) {
+    const partes = CURVA_RAW[i].data.split("/");
+    const dia = parseInt(partes[0]);
+    const mes = parseInt(partes[1]);
+    if(mes === mesHoje && dia === diaHoje) return i;
+  }
+  return -1; // hoje não está na curva ainda
+}
+// HOJE_IDX = índice de ontem (para acumulado/desvio)
+// HOJE_IDX_HOJE = índice do dia atual (para meta recalculada do dia)
+let HOJE_IDX = 0;
+let HOJE_IDX_HOJE = -1;
+function recalcHojeIdx() {
+  HOJE_IDX = getD1Idx();
+  HOJE_IDX_HOJE = getHojeIdx();
+}
+
+function getFatRealPorLoja() {
+  const grupoLojas = GRUPOS[grupoAtivo];
+  const todasLojas = ["AMAPA GARDEN SHOP LJ","SHOP MACAPA LJ","MACAPA LJR","OTICA SHOP MACAPA LJ"];
+  const result = {};
+  todasLojas.forEach(loja => {
+    if(grupoLojas && !grupoLojas.includes(loja)) return;
+    result[loja] = allData.filter(d => d.loja === loja).reduce((s,d) => s + d.vendas, 0);
+  });
+  return result;
+}
+
+let curvaLojaAtiva = 0;
+let chartCurvaDiario = null;
+
+function renderCurva() {
+  recalcHojeIdx();
+  if(CURVA_RAW.length === 0) {
+    const grid = document.getElementById("curva-lojas-grid");
+    if(grid) grid.innerHTML = '<p style="color:var(--muted);padding:1rem;font-size:0.8rem">Aguardando dados da curva do Sheets...</p>';
+    document.getElementById("tbody-meta-recalc").innerHTML = "";
+    document.getElementById("curva-fat-total").textContent = "—";
+    document.getElementById("curva-esp-total").textContent = "—";
+    document.getElementById("curva-desvio").textContent = "—";
+    document.getElementById("curva-ok").textContent = "—";
+    return;
+  }
+  const fatReal = getFatRealPorLoja();
+  const espHoje = LOJAS_CURVA.map((_,li) =>
+    CURVA_RAW.slice(0, HOJE_IDX+1).reduce((s,r) => s + r.vals[li], 0)
+  );
+  // diasRestantes e curvaRestante = a partir de AMANHÃ (depois do dia de hoje)
+  const idxAposHoje = HOJE_IDX_HOJE >= 0 ? HOJE_IDX_HOJE + 1 : HOJE_IDX + 1;
+  const diasRestantes = LOJAS_CURVA.map((_,li) =>
+    CURVA_RAW.slice(idxAposHoje).filter(r => r.vals[li] > 10).length
+  );
+  const curvaRestante = LOJAS_CURVA.map((_,li) =>
+    CURVA_RAW.slice(idxAposHoje).reduce((s,r) => s + r.vals[li], 0)
+  );
+  const grupoLojas = GRUPOS[grupoAtivo];
+  const lojaIdxs = LOJAS_CURVA.map((_,i)=>i).filter(i => {
+    const loja = CURVA_TO_LOJA[i];
+    return !grupoLojas || grupoLojas.includes(loja);
+  });
+
+  const totalFat = lojaIdxs.reduce((s,li)=>s+(fatReal[CURVA_TO_LOJA[li]]||0),0);
+  const totalEsp = lojaIdxs.reduce((s,li)=>s+espHoje[li],0);
+  const desvio   = totalFat - totalEsp;
+  document.getElementById("curva-fat-total").textContent  = fmtR(totalFat);
+  document.getElementById("curva-esp-total").textContent  = fmtR(totalEsp);
+  document.getElementById("curva-desvio").textContent     = (desvio>=0?"+":"")+fmtR(desvio);
+  document.getElementById("curva-desvio").style.color     = desvio>=0?"var(--pos-color)":"var(--neg-color)";
+  document.getElementById("curva-desvio-pct").textContent = totalEsp>0 ? ((desvio/totalEsp)*100).toFixed(1)+"% vs curva" : "vs curva";
+  const lojasOk = lojaIdxs.filter(li => (fatReal[CURVA_TO_LOJA[li]]||0) >= espHoje[li]).length;
+  document.getElementById("curva-ok").textContent = lojasOk + "/" + lojaIdxs.length;
+
+  const grid = document.getElementById("curva-lojas-grid");
+  grid.innerHTML = lojaIdxs.map(li => {
+    const loja      = CURVA_TO_LOJA[li];
+    const realizado = fatReal[loja] || 0;
+    const esperado  = espHoje[li];
+    const meta      = META_MENSAL[li];
+    const desvioL   = realizado - esperado;
+    const pctCurva  = esperado > 0 ? Math.min((realizado/esperado)*100, 120) : 0;
+    const pctMeta   = meta > 0 ? Math.min((realizado/meta)*100, 100) : 0;
+    const dentro    = desvioL >= 0;
+    const faltaMeta = meta - realizado;
+    const diasRest  = diasRestantes[li];
+    // Meta do dia recalculada pela curva ponderada:
+    // desvio = acumulado até ontem; curvaHoje = previsto para hoje
+    // meta hoje = curva hoje + (desvio até ontem × peso de hoje)
+    const curvaHoje        = HOJE_IDX_HOJE >= 0 && CURVA_RAW[HOJE_IDX_HOJE] ? CURVA_RAW[HOJE_IDX_HOJE].vals[li] : 0;
+    const curvaRestComHoje = curvaHoje + curvaRestante[li];
+    const pesoHoje         = curvaRestComHoje > 0 ? curvaHoje / curvaRestComHoje : 0;
+    const metaDiaFinal     = curvaHoje - desvioL * pesoHoje;
+    // Projeção: fator acumulado (até ontem) × meta mensal
+    const fator       = esperado > 0 ? realizado / esperado : 0;
+    const projecao    = fator * meta;
+    const projecaoDif = projecao - meta;
+    const cor   = sc(loja).tx;
+    const corBd = sc(loja).bd;
+    return `<div class="curva-card" style="border-color:${corBd}33">
+      <div class="curva-card-name" style="color:${cor}">${loja}</div>
+      <span class="curva-badge ${dentro?'curva-ok':'curva-nok'}">${dentro?'✓ Na curva':'✗ Fora da curva'}</span>
+      <div class="curva-meta">Faturado vs Curva até hoje</div>
+      <div class="curva-val">${fmtR(realizado)}</div>
+      <div class="curva-progress"><div class="curva-progress-fill" style="width:${pctCurva}%;background:${dentro?'var(--pos-color)':'var(--neg-color)'}"></div></div>
+      <div class="curva-stats">
+        <span>Curva: ${fmtR(esperado)}</span>
+        <span style="color:${dentro?'var(--pos-color)':'var(--neg-color)'}">${dentro?'+':''}${fmtR(desvioL)}</span>
+      </div>
+      <div class="curva-meta" style="margin-top:0.6rem">Progresso meta mensal (${fmtR(meta)})</div>
+      <div class="curva-progress"><div class="curva-progress-fill" style="width:${pctMeta}%;background:${cor}"></div></div>
+      <div class="curva-stats"><span>${pctMeta.toFixed(1)}% da meta</span><span style="color:var(--muted)">Faltam ${fmtR(faltaMeta)}</span></div>
+      <div class="curva-recalc">Meta/dia recalculada: <span>${fmtR(metaDiaFinal)}</span>
+        <span style="color:var(--muted);font-size:0.6rem"> (curva: ${fmtR(curvaHoje)})</span>
+      </div>
+      <div class="curva-recalc" style="margin-top:0.3rem">Projeção do mês: <span style="color:${projecaoDif>=0?'var(--pos-color)':'var(--neg-color)'}">${fmtR(projecao)}</span>
+        <span style="color:${projecaoDif>=0?'var(--pos-color)':'var(--neg-color)'};font-size:0.6rem"> (${projecaoDif>=0?'+':''}${fmtR(projecaoDif)} vs meta)</span>
+      </div>
+    </div>`;
+  }).join("");
+
+  const tbody = document.getElementById("tbody-meta-recalc");
+  const thead = document.querySelector("#table-meta-recalc thead tr");
+  if(thead && thead.children.length < 6) {
+    const th = document.createElement("th");
+    th.textContent = "Projeção Mês";
+    thead.appendChild(th);
+  }
+  tbody.innerHTML = lojaIdxs.map(li => {
+    const loja      = CURVA_TO_LOJA[li];
+    const realizado = fatReal[loja] || 0;
+    const meta      = META_MENSAL[li];
+    const desvioL   = realizado - espHoje[li];
+    const dentro    = desvioL >= 0;
+    const curvaHoje        = HOJE_IDX_HOJE >= 0 && CURVA_RAW[HOJE_IDX_HOJE] ? CURVA_RAW[HOJE_IDX_HOJE].vals[li] : 0;
+    const curvaRestComHoje = curvaHoje + curvaRestante[li];
+    const pesoHoje         = curvaRestComHoje > 0 ? curvaHoje / curvaRestComHoje : 0;
+    const metaDiaFinal     = curvaHoje - desvioL * pesoHoje;
+    const fator    = espHoje[li] > 0 ? realizado / espHoje[li] : 0;
+    const projecao = fator * meta;
+    const projDif  = projecao - meta;
+    return `<tr>
+      <td><span class="store-tag ${sc(loja).cls}">${loja}</span></td>
+      <td style="font-size:0.68rem;color:var(--muted)">${fmtR(meta)}</td>
+      <td style="font-size:0.68rem;color:var(--text)">${fmtR(realizado)}</td>
+      <td style="font-size:0.68rem;color:${dentro?'var(--pos-color)':'var(--neg-color)'}">${dentro?'+':''}${fmtR(desvioL)}</td>
+      <td class="val-cell" style="color:${dentro?'var(--accent)':'var(--accent4)'}">${fmtR(metaDiaFinal)}<span style="font-size:0.58rem;color:var(--muted)">/dia</span></td>
+      <td style="font-size:0.68rem;font-weight:600;color:${projDif>=0?'var(--pos-color)':'var(--neg-color)'}">${fmtR(projecao)}<span style="font-size:0.58rem;color:var(--muted)"> (${projDif>=0?'+':''}${fmtR(projDif)})</span></td>
+    </tr>`;
+  }).join("");
+
+  const sel = document.getElementById("curva-loja-selector");
+  if(!lojaIdxs.includes(curvaLojaAtiva)) curvaLojaAtiva = lojaIdxs[0]||0;
+  sel.innerHTML = lojaIdxs.map(li => {
+    const loja = CURVA_TO_LOJA[li];
+    return `<button class="loja-sel-btn ${li===curvaLojaAtiva?'active':''}" onclick="setCurvaLoja(${li})">${loja}</button>`;
+  }).join("");
+
+  renderCurvaChart();
+}
+
+function setCurvaLoja(li) {
+  curvaLojaAtiva = li;
+  document.querySelectorAll(".loja-sel-btn").forEach((b,i2) => b.classList.toggle("active", i2===li));
+  renderCurvaChart();
+}
+
+function getFatDiarioPorLoja(loja) {
+  const diasMap = {};
+  if(!faturamentoData || faturamentoData.length < 2) return diasMap;
+  const dataRows = faturamentoData[0] && String(faturamentoData[0][0]||"").toLowerCase().includes("emiss")
+    ? faturamentoData.slice(1) : faturamentoData;
+  const parsed = parseFaturamento(dataRows);
+  Object.entries(parsed).forEach(([nome, v]) => {
+    if(v.loja !== loja) return;
+    Object.entries(v.diasMap).forEach(([dia, val]) => {
+      diasMap[parseInt(dia)] = (diasMap[parseInt(dia)] || 0) + val;
+    });
+  });
+  return diasMap;
+}
+
+function renderCurvaChart() {
+  const li    = curvaLojaAtiva;
+  const loja  = CURVA_TO_LOJA[li];
+  const fatReal = getFatRealPorLoja();
+  const totalReal = fatReal[loja] || 0;
+  const labels    = CURVA_RAW.map(r => r.data);
+  const curvaVals = CURVA_RAW.map(r => r.vals[li]);
+  const fatDiario = getFatDiarioPorLoja(loja);
+  const temDiario = Object.keys(fatDiario).length > 0;
+  let realVals;
+  if(temDiario) {
+    realVals = CURVA_RAW.map((r, di) => {
+      if(di > HOJE_IDX) return null;
+      const partes = r.data.split("/"); return fatDiario[parseInt(partes[0])] || 0;
+    });
+  } else {
+    const curvaSomada = CURVA_RAW.slice(0, HOJE_IDX+1).reduce((s,r)=>s+r.vals[li],0);
+    realVals = CURVA_RAW.map((r, di) => {
+      if(di > HOJE_IDX) return null;
+      if(curvaSomada === 0) return 0;
+      return +(totalReal * (r.vals[li] / curvaSomada)).toFixed(2);
+    });
+  }
+  const espHojeChart   = CURVA_RAW.slice(0, HOJE_IDX+1).reduce((s,r) => s + r.vals[li], 0);
+  const desvioChart    = totalReal - espHojeChart; // desvio até ontem
+  const recalcVals     = CURVA_RAW.map((r, di) => {
+    if(di <= HOJE_IDX || r.vals[li] === 0) return null;
+    const curvaRestComEste = CURVA_RAW.slice(di).reduce((s,rr) => s + rr.vals[li], 0);
+    const pesoEste = curvaRestComEste > 0 ? r.vals[li] / curvaRestComEste : 0;
+    return +(r.vals[li] + desvioChart * pesoEste).toFixed(2);
+  });
+  const cor = sc(loja).bd;
+  const isDarkMode = !document.documentElement.classList.contains("light");
+  const tickColor = isDarkMode ? "#4a5568" : "#94a3b8";
+  if(chartCurvaDiario) chartCurvaDiario.destroy();
+  chartCurvaDiario = new Chart(document.getElementById("chart-curva-diario").getContext("2d"), {
+    type:"bar",
+    data:{labels, datasets:[
+      {label:"Curva Esperada", data:curvaVals, backgroundColor:"rgba(128,128,128,0.2)", borderColor:"rgba(128,128,128,0.4)", borderWidth:1, borderRadius:3, order:3},
+      {label:temDiario?"Realizado (diário)":"Realizado (estimado)", data:realVals, backgroundColor:cor+"44", borderColor:cor, borderWidth:2, borderRadius:3, order:2},
+      {label:"Meta Recalculada", data:recalcVals, backgroundColor:"rgba(250,204,21,0.2)", borderColor:"rgba(250,204,21,0.7)", borderWidth:2, borderRadius:3, order:1},
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{labels:{color:tickColor,font:{family:"Inter",size:10},boxWidth:10}},
+        tooltip:{callbacks:{label:c=>` ${fmtR(c.raw||0)}`},bodyFont:{family:"Inter"}}
+      },
+      scales:{
+        x:{grid:{color:"rgba(128,128,128,0.06)"},ticks:{color:tickColor,font:{family:"Inter",size:8},maxRotation:45}},
+        y:{grid:{color:"rgba(128,128,128,0.06)"},ticks:{color:tickColor,font:{family:"Inter",size:9},callback:v=>"R$"+v.toLocaleString("pt-BR")}}
+      }
+    }
+  });
+}
+
+// ===== DADOS GLOBAIS EXTRAS =====
+let baseAtualData    = [];
+let baseAnteriorData = [];
+let curvaVendData    = [];
+let faturamentoData  = [];
+let termometrosData  = {};
+
+// Mapa dinâmico vendedor→loja vindo do json.lojas do Sheets
+// Fonte de verdade para parseFaturamento e lojaDoVendedor
+let lojaMapDinamico = {};
+
+// CONFIGURE — mapeamento de código ERP → loja para a aba Base
+const BASE_LOJA_MAP = {"104":"AMAPA GARDEN SHOP LJ","95":"AMAPA GARDEN SHOP LJ","112":"AMAPA GARDEN SHOP LJ","116":"AMAPA GARDEN SHOP LJ","105":"SHOP MACAPA LJ","107":"SHOP MACAPA LJ","108":"SHOP MACAPA LJ","115":"SHOP MACAPA LJ","71":"MACAPA LJR","88":"MACAPA LJR","93":"OTICA SHOP MACAPA LJ","113":"OTICA SHOP MACAPA LJ","102":"OTICA SHOP MACAPA LJ","100":"OTICA SHOP MACAPA LJ"};
+
+function parseBase(rows) {
+  // Suporta dois formatos de aba Base:
+  // Formato A (dinâmico): "PA CIDADE - NOME LOJA (código)" na col A, total na mesma linha
+  // Formato B (legado):   "PA LOJA (código)" na col A, categorias nas linhas seguintes com col A vazia
+  if(!rows || !rows.length) return {};
+  const result = {};
+  let lojaAtual = null;
+  const toNum = v => {
+    if(v===null||v===undefined||v==="") return 0;
+    const s = String(v).replace(/[R$\s]/g,"").replace(/\.(?=\d{3})/g,"").replace(",",".");
+    return parseFloat(s)||0;
+  };
+
+  // Tenta resolver o nome da loja a partir do texto da linha de cabeçalho
+  // Ex: "PA ALTAMIRA - ALTAMIRA LJR (1)" → procura "ALTAMIRA LJR" no STORE_MAP / lojaMapDinamico
+  function resolveLojaFromHeader(colA) {
+    // 1. Extrai código entre parênteses no final
+    const mCod = colA.match(/\((\d+)\)\s*$/);
+    const cod = mCod ? mCod[1] : null;
+
+    // 2. Tenta pelo BASE_LOJA_MAP (código → loja)
+    if(cod && BASE_LOJA_MAP[cod]) return BASE_LOJA_MAP[cod];
+
+    // 3. Tenta pelo lojaMapDinamico (código → loja)
+    if(cod && lojaMapDinamico[cod]) return lojaMapDinamico[cod];
+
+    // 4. Tenta extrair o nome da loja após o " - "
+    //    Ex: "PA ALTAMIRA - ALTAMIRA LJR (1)" → "ALTAMIRA LJR"
+    const mDash = colA.match(/-\s*(.+?)\s*(?:\(\d+\))?\s*$/);
+    if(mDash) {
+      const candidato = mDash[1].trim().toUpperCase();
+      const normFn = s => s.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+      const normCand = normFn(candidato);
+      // Primeiro tenta match exato (evita confundir "SHOP MACAPA LJ" com "OTICA SHOP MACAPA LJ")
+      const exactFound = LOJAS_CURVA.find(l => normFn(l) === normCand);
+      if(exactFound) return exactFound;
+      // Depois tenta match parcial, mas prioriza o nome mais longo (mais específico) para evitar
+      // que "SHOP MACAPA LJ" capture dados de "OTICA SHOP MACAPA LJ"
+      const partialMatches = LOJAS_CURVA.filter(l => {
+        return normCand.includes(normFn(l)) || normFn(l).includes(normCand);
+      });
+      if(partialMatches.length > 0) {
+        // Retorna o candidato que mais se assemelha ao texto (maior match)
+        partialMatches.sort((a, b) => normFn(b).length - normFn(a).length);
+        // Só aceita se o candidato for substring do nome da loja ou vice-versa com alta similaridade
+        const bestMatch = partialMatches.find(l => normFn(l) === normCand || normCand === normFn(l));
+        return bestMatch || partialMatches[0];
+      }
+    }
+
+    // 5. Fallback: usa o texto depois do " - " como nome direto
+    if(mDash) {
+      const nome = mDash[1].trim();
+      if(nome) return nome;
+    }
+
+    // 6. Último recurso: usa a string inteira sem o código
+    return colA.replace(/\s*\(\d+\)\s*$/, "").trim();
+  }
+
+  rows.forEach(row => {
+    const colA = String(row[0]||"").trim();
+    const colB = String(row[1]||"").trim();
+
+    // Linha de cabeçalho = coluna A preenchida com código entre parênteses no final
+    // E coluna A não é uma categoria (categorias ficam na col B quando col A está vazia)
+    if(colA && /\(\d+\)\s*$/.test(colA) && colA.toUpperCase() !== "EMPRESA") {
+      lojaAtual = resolveLojaFromHeader(colA);
+      if(lojaAtual && !result[lojaAtual]) {
+        // Total pode estar em col B+C (formato novo) ou ser calculado pelas categorias
+        const totalQtde = toNum(row[1]);
+        const totalValor = toNum(row[2]);
+        result[lojaAtual] = {total_qtde: totalQtde, total_valor: totalValor, categorias:[]};
+      }
+      return;
+    }
+
+    // Linha de categoria = col A vazia, col B com nome da categoria
+    if(lojaAtual && result[lojaAtual] && !colA && colB) {
+      let nomeCat = colB.replace(/\s*\(\d+\)\s*$/, "").trim();
+      if(!nomeCat) return;
+      // Normaliza nomes de categoria
+      if(nomeCat === "LENTES VISTA" || nomeCat === "MULTI LENTE") nomeCat = "LENTES";
+      if(nomeCat === "ASSIST TEC REL REVENDA" || nomeCat === "GERAL") return; // ignora categorias não relevantes
+      const qtde  = toNum(row[2]);
+      const valor = toNum(row[3]);
+      if(qtde === 0 && valor === 0) return;
+      const existing = result[lojaAtual].categorias.find(c => c.nome === nomeCat);
+      if(existing) { existing.qtde += qtde; existing.valor += valor; }
+      else result[lojaAtual].categorias.push({nome: nomeCat, qtde, valor});
+    }
+  });
+
+  // Recalcula totais a partir das categorias se o total da linha header for 0
+  Object.values(result).forEach(loja => {
+    if(loja.total_qtde === 0) {
+      loja.total_qtde = loja.categorias.reduce((s,c) => s + c.qtde, 0);
+    }
+    if(loja.total_valor === 0) {
+      loja.total_valor = loja.categorias.reduce((s,c) => s + c.valor, 0);
+    }
+  });
+
+  return result;
+}
+
+function calc7030(lojaVendedores) {
+  if(!lojaVendedores.length) return { ok:[], nok:[], pct:0, lider:0, threshold:0 };
+  const sorted = [...lojaVendedores].sort((a,b)=>b.vendas-a.vendas);
+  const melhorVendedor = sorted.find(d => !isGerente(d.nome));
+  const lider = melhorVendedor ? melhorVendedor.vendas : sorted[0].vendas;
+  const threshold = lider * 0.7;
+  const vendedores = sorted.filter(d => !isGerente(d.nome));
+  const ok  = vendedores.filter(d => d.vendas >= threshold);
+  const nok = vendedores.filter(d => d.vendas <  threshold);
+  return { ok, nok, pct: vendedores.length ? (ok.length / vendedores.length) * 100 : 0, lider, threshold };
+}
+function emoji7030(pct) { return pct >= 70 ? "🟢" : pct >= 50 ? "🟡" : "🔴"; }
+
+function statusYoY(pct) {
+  if(pct >= 0)   return "yoy-green";
+  if(pct >= -10) return "yoy-yellow";
+  return "yoy-red";
+}
+function emojiYoY(pct) { return pct >= 0 ? "🟢" : pct >= -10 ? "🟡" : "🔴"; }
+function statusMTD(pct) { return pct >= 90 ? "yoy-green" : pct >= 70 ? "yoy-yellow" : "yoy-red"; }
+function emojiMTD(pct)  { return pct >= 90 ? "🟢" : pct >= 70 ? "🟡" : "🔴"; }
+
+function getCurvaStatusLoja(loja) {
+  const entry = Object.entries(CURVA_TO_LOJA).find(([,v])=>v===loja);
+  if(!entry) return null;
+  const li  = parseInt(entry[0]);
+  const esp  = CURVA_RAW.slice(0, HOJE_IDX+1).reduce((s,r)=>s+(r.vals[li]||0),0);
+  const real = allData.filter(d => d.loja === loja).reduce((s,d) => s + d.vendas, 0);
+  return real >= esp;
+}
+function getMTDPctLoja(loja) {
+  const entry = Object.entries(CURVA_TO_LOJA).find(([,v])=>v===loja);
+  if(!entry) return 0;
+  const li = parseInt(entry[0]);
+  const meta = META_MENSAL[li] || 0;
+  if(!meta) return 0;
+  const fatLoja = allData.filter(d => d.loja === loja).reduce((s,d) => s + d.vendas, 0);
+  return (fatLoja / meta) * 100;
+}
+
+function getMetaDiariaVendedor(nomeVendedor, loja) {
+  if(!curvaVendData || curvaVendData.length < 3) return null;
+  const gerente = /^GERENTE\s/i.test(nomeVendedor.trim());
+  const cargo   = gerente ? "GERENTE" : "VENDEDOR";
+  const rowLojas  = curvaVendData[0].map(h => String(h||"").trim().toUpperCase());
+  const rowCargos = curvaVendData[1].map(h => String(h||"").trim().toUpperCase());
+  // CONFIGURE — mapeamento de nome interno para nome no Sheets (coluna de loja na CurvaVend)
+  const LOJA_NORM = {"AMAPA GARDEN SHOP LJ":"AMAPA GARDEN SHOP LJ","SHOP MACAPA LJ":"SHOP MACAPA LJ","MACAPA LJR":"MACAPA LJR","OTICA SHOP MACAPA LJ":"OTICA SHOP MACAPA LJ"};
+  const lojaNorm  = LOJA_NORM[loja] || loja.toUpperCase();
+  const colIdx = rowLojas.findIndex((l,i) => (l===lojaNorm||l.includes(lojaNorm)) && rowCargos[i]===cargo);
+  if(colIdx < 0) return null;
+
+  function parseVendVal(v) {
+    if(!v || String(v).trim()==="-" || String(v).trim()==="R$  -") return 0;
+    const s = String(v).replace(/[R$\s]/g,"");
+    if(!s.includes(",")) return parseFloat(s) || 0;
+    const raw = s.replace(/\.(?=\d{3})/g,"").replace(",",".");
+    return parseFloat(raw) || 0;
+  }
+
+  let meta = 0;
+  const metaRow = curvaVendData.find(r => String(r[0]||"").toLowerCase().trim() === "meta");
+  if(metaRow) { const v = parseVendVal(metaRow[colIdx]); if(v > 0) meta = v; }
+  if(!meta) return null;
+
+  const vend = allData.find(d => d.nome === nomeVendedor);
+  const realizado = vend ? vend.vendas : 0;
+
+  // Separa as linhas de dados (ignora cabeçalhos e linha meta)
+  const dataRows = curvaVendData.slice(2).filter(r => {
+    const c = String(r[0]||"").trim();
+    return c && !c.toLowerCase().includes("meta");
+  });
+
+  const hoje = new Date();
+  const diaHoje = hoje.getDate();
+  const mesHoje = hoje.getMonth() + 1;
+
+  function getDiaMes(cell) {
+    const s = String(cell||"").trim();
+    const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(iso) return { dia: parseInt(iso[3]), mes: parseInt(iso[2]) };
+    const sl  = s.match(/^(\d{1,2})\/(\d{1,2})/);
+    if(sl) return { dia: parseInt(sl[1]), mes: parseInt(sl[2]) };
+    return null;
+  }
+
+  // Acumulado da curva até ontem (para calcular desvio)
+  let curvaAteOntem = 0;
+  // Curva de hoje (para meta do dia)
+  let curvaHoje = 0;
+  // Curva restante após hoje (para peso de hoje)
+  let curvaAposHoje = 0;
+
+  dataRows.forEach(row => {
+    const dm = getDiaMes(row[0]);
+    if(!dm) return;
+    if(dm.mes !== mesHoje) return;
+    const val = parseVendVal(row[colIdx]);
+    if(dm.dia < diaHoje)  curvaAteOntem += val;
+    if(dm.dia === diaHoje) curvaHoje     = val;
+    if(dm.dia > diaHoje)  curvaAposHoje += val;
+  });
+
+  if(curvaHoje <= 0) return null;
+
+  // Desvio até ontem = realizado - curva esperada até ontem
+  const desvio = realizado - curvaAteOntem;
+
+  // Peso de hoje = curva hoje / (curva hoje + curva após hoje)
+  const curvaRestComHoje = curvaHoje + curvaAposHoje;
+  const pesoHoje = curvaRestComHoje > 0 ? curvaHoje / curvaRestComHoje : 0;
+
+  // Meta do dia = curva de hoje - (desvio × peso de hoje)
+  // desvio positivo = adiantada → reduz meta; desvio negativo = devendo → aumenta meta
+  const metaDia = curvaHoje - desvio * pesoHoje;
+
+  if(!isFinite(metaDia) || metaDia < 0) return null;
+
+  const pctMeta = meta > 0 ? (realizado / meta) * 100 : 0;
+  return { meta, realizado, metaDia, curvaHoje, desvio, pctMeta };
+}
+
+function _curvaAcumulada(li, ateDia) {
+  if(li < 0) return 0;
+  return CURVA_RAW.filter(r => parseInt(r.data.split("/")[0]) <= ateDia).reduce((s,r) => s + (r.vals[li] || 0), 0);
+}
+function _curvaRestante(li, depoisDia, ateDia) {
+  if(li < 0) return 0;
+  return CURVA_RAW.filter(r => { const d = parseInt(r.data.split("/")[0]); return d > depoisDia && d <= ateDia; }).reduce((s,r) => s + (r.vals[li] || 0), 0);
+}
+function _projetarComCurva(realizado, li, diaD1, ateDia) {
+  const curvaAte = _curvaAcumulada(li, diaD1);
+  if(curvaAte <= 0) { const diasRestFallback = Math.max(0, ateDia - diaD1); return realizado + (diaD1 > 0 ? (realizado / diaD1) * diasRestFallback : 0); }
+  return realizado + (realizado / curvaAte) * _curvaRestante(li, diaD1, ateDia);
+}
+
+function getProjecaoVendedor(nomeVendedor) {
+  const d1Idx = getD1Idx();
+  if(d1Idx < 0) return null;
+  const diaD1 = parseInt(CURVA_RAW[d1Idx].data.split("/")[0]);
+  if(diaD1 <= 0) return null;
+  const vend = allData.find(d => d.nome === nomeVendedor);
+  if(!vend || !vend.vendas) return null;
+  const realizado = vend.vendas;
+  const entry = Object.entries(CURVA_TO_LOJA).find(([,v]) => v === vend.loja);
+  const li = entry ? parseInt(entry[0]) : -1;
+  const dezenaDiaD1 = diaD1<=10?10:diaD1<=20?20:31;
+  const ultimoDiaMes = parseInt(CURVA_RAW[CURVA_RAW.length-1].data.split("/")[0]);
+  return { realizado, diaD1, projecaoDezena:_projetarComCurva(realizado,li,diaD1,dezenaDiaD1), projecaoMes:_projetarComCurva(realizado,li,diaD1,ultimoDiaMes) };
+}
+
+function getProjecaoLoja(loja) {
+  const entry = Object.entries(CURVA_TO_LOJA).find(([,v]) => v === loja);
+  const li = entry ? parseInt(entry[0]) : -1;
+  const d1Idx = getD1Idx();
+  if(d1Idx < 0) return null;
+  const diaD1 = parseInt(CURVA_RAW[d1Idx].data.split("/")[0]);
+  if(diaD1 <= 0) return null;
+  const realizado = allData.filter(d => d.loja === loja).reduce((s,d) => s + d.vendas, 0);
+  const meta = li >= 0 ? META_MENSAL[li] : 0;
+  const dezenaDiaD1 = diaD1<=10?10:diaD1<=20?20:31;
+  const ultimoDiaMes = parseInt(CURVA_RAW[CURVA_RAW.length-1].data.split("/")[0]);
+  return { realizado, meta, diaD1, projecaoDezena:_projetarComCurva(realizado,li,diaD1,dezenaDiaD1), projecaoMes:_projetarComCurva(realizado,li,diaD1,ultimoDiaMes) };
+}
+
+
+// ===== RENDER RESUMO — VISÃO DEZENA (blocos compactos) =====
+function renderResumoDezenaEmResumo(dezenaAtiva) {
+  const grupoLojas = GRUPOS[grupoAtivo];
+  const todasLojas = ["AMAPA GARDEN SHOP LJ","SHOP MACAPA LJ","MACAPA LJR","OTICA SHOP MACAPA LJ"];
+  const lojas = todasLojas.filter(l => !grupoLojas || grupoLojas.includes(l));
+  const {min, max} = diasDaDezena(dezenaAtiva);
+  const dezNome = dezenaAtiva===1?"1ª Dezena (01–10)":dezenaAtiva===2?"2ª Dezena (11–20)":"3ª Dezena (21–fim)";
+
+  // Usa faturamentoData se disponível, senão usa allData como fallback (mês inteiro)
+  const vendMapDez = {};
+  if(faturamentoData && faturamentoData.length > 1) {
+    const dataRows = faturamentoData[0] && String(faturamentoData[0][0]||"").toLowerCase().includes("emiss")
+      ? faturamentoData.slice(1) : faturamentoData;
+    const vendMap = parseFaturamento(dataRows);
+    Object.entries(vendMap).forEach(([nome, v]) => {
+      if(!nome) return;
+      const diasDez = Object.entries(v.diasMap).filter(([d]) => { const d2=parseInt(d); return d2>=min&&d2<=max; });
+      const totalDezena = diasDez.reduce((s,[,val])=>s+val,0);
+      if(totalDezena > 0) vendMapDez[nome] = { ...v, totalDezena };
+    });
+  } else {
+    // Fallback: usa allData (não tem breakdown por dia, usa total do mês)
+    allData.forEach(d => {
+      if(!d.nome) return;
+      vendMapDez[d.nome] = { loja: d.loja, totalDezena: d.vendas, diasMap: {} };
+    });
+  }
+
+  let html = `<div class="resumo-section-title">📅 ${dezNome}</div>`;
+
+  lojas.forEach(loja => {
+    const lojaIdx = ["AMAPA GARDEN SHOP LJ","SHOP MACAPA LJ","MACAPA LJR","OTICA SHOP MACAPA LJ"].indexOf(loja);
+    const cor   = sc(loja).tx;
+    const corBd = sc(loja).bd;
+
+    // Vendedores da loja com dados da dezena
+    const vendedores = Object.entries(vendMapDez)
+      .filter(([nome, v]) => v.loja === loja && v.totalDezena > 0 && nome)
+      .map(([nome, v]) => ({ nome, totalDezena: v.totalDezena }))
+      .sort((a,b) => b.totalDezena - a.totalDezena);
+    if(!vendedores.length) return;
+
+    const totalDezLoja = vendedores.reduce((s,v) => s+v.totalDezena, 0);
+    const metaDezLoja  = getMetaDezena(lojaIdx>=0?lojaIdx:0, dezenaAtiva);
+    const pctMeta      = metaDezLoja>0 ? (totalDezLoja/metaDezLoja)*100 : 0;
+    const mdDezLoja    = getMetaDiaDezena(lojaIdx>=0?lojaIdx:0, dezenaAtiva, totalDezLoja);
+    const r7030        = calc7030(vendedores.filter(v=>v.nome).map(v => ({vendas: v.totalDezena, nome: v.nome})));
+
+    html += `<div class="resumo-loja-card" style="border-color:${corBd}33;margin-bottom:1.5rem">
+      <div class="resumo-loja-header">
+        <div class="resumo-loja-name" style="color:${cor}">${loja}</div>
+        <div class="resumo-loja-stats">
+          <div class="resumo-loja-stat"><label>Total Dezena</label><span>${fmtR(totalDezLoja)}</span></div>
+          <div class="resumo-loja-stat"><label>Meta Dezena</label><span>${fmtR(metaDezLoja)}</span></div>
+          <div class="resumo-loja-stat"><label>% Meta</label><span class="${pctMeta>=100?'yoy-green':pctMeta>=70?'yoy-yellow':'yoy-red'}">${pctMeta.toFixed(1)}%</span></div>
+          ${mdDezLoja ? `<div class="resumo-loja-stat"><label>Meta/Dia <span style="font-size:0.6rem;opacity:0.7">(D)</span></label><span style="color:var(--accent4);font-weight:700">${fmtR(mdDezLoja.metaDia)}</span></div>` : ''}
+          <div class="resumo-loja-stat"><label>70/30</label><span>${emoji7030(r7030.pct)} ${r7030.pct.toFixed(0)}%</span></div>
+        </div>
+      </div>
+      <div class="resumo-vend-grid">`;
+
+    vendedores.forEach((v, i) => {
+      const in7030   = r7030.lider>0 && v.totalDezena >= r7030.threshold;
+      const pctLider = r7030.lider>0 ? (v.totalDezena/r7030.lider*100).toFixed(0) : 0;
+      const posC     = i===0?"color:var(--accent4)":i===1?"color:#94a3b8":i===2?"color:#cd7f32":"color:var(--muted)";
+      const mvIndiv  = getMetaDiariaVendedor(v.nome, loja);
+      const metaIndivDez = mvIndiv
+        ? mvIndiv.meta * (metaDezLoja / (META_MENSAL[lojaIdx>=0?lojaIdx:0]||1))
+        : metaDezLoja / Math.max(vendedores.filter(x=>!isGerente(x.nome||"")).length, 1);
+      const pctVend  = metaIndivDez>0 ? (v.totalDezena/metaIndivDez)*100 : 0;
+      const mvDez    = getMetaDiaDezenaVendedor(v.nome, loja, v.totalDezena);
+      const metaDiaD = mvDez ? mvDez.metaDia : null;
+      const cor2     = pctVend>=100?"var(--pos-color)":pctVend>=70?"var(--accent4)":"var(--neg-color)";
+      // Indicadores do mês para PA, TM, Nº Vendas, Peças
+      const vendMes  = allData.find(d => d.nome === v.nome);
+      const nVendas  = vendMes && vendMes.vendas>0 && vendMes.ticket>0 ? Math.round(vendMes.vendas/vendMes.ticket) : 0;
+      // Projeção da dezena
+      const pv = getProjecaoVendedor(v.nome);
+
+      const paVend   = vendMes ? fmtN(vendMes.ppv||0) : '—';
+      const tmVend   = vendMes ? fmtR(vendMes.ticket||0) : '—';
+      const nVendasS = nVendas > 0 ? nVendas : '—';
+      const pecasS   = vendMes ? (vendMes.pecas||0) : '—';
+      const metaDiaDStr = metaDiaD !== null ? fmtR(Math.max(0, metaDiaD)) : null;
+      const projDezStr  = pv ? fmtR(pv.projecaoDezena) : null;
+      const badge7030   = in7030 ? '<span class="badge-7030-ok">✓ 70/30</span>' : '<span class="badge-7030-nok">✗ 70/30</span>';
+      const pos7 = i===0?"🥇":i===1?"🥈":i===2?"🥉":"#"+(i+1);
+      let cardHtml = '<div class="resumo-vend-card" style="border-color:'+(in7030?corBd+'33':'var(--neg-color)33')+'">';
+      cardHtml += '<div class="resumo-vend-pos" style="'+posC+'">'+pos7+' '+badge7030+'</div>';
+      cardHtml += '<div class="resumo-vend-name" title="'+(v.nome||'')+'">'+( v.nome ? shortName(v.nome) : '—')+'</div>';
+      cardHtml += '<div class="resumo-stat-row"><span class="resumo-stat-label">Total Dez.</span><span class="resumo-stat-val" style="color:var(--accent)">'+fmtR(v.totalDezena)+'</span></div>';
+      cardHtml += '<div class="resumo-stat-row"><span class="resumo-stat-label">% do líder</span><span class="resumo-stat-val" style="color:'+(in7030?'var(--pos-color)':'var(--neg-color)')+'">'+pctLider+'%</span></div>';
+      cardHtml += '<div class="resumo-stat-row"><span class="resumo-stat-label">% Meta Dez.</span><span class="resumo-stat-val" style="color:'+cor2+'">'+pctVend.toFixed(0)+'%</span></div>';
+      cardHtml += '<div class="resumo-stat-row"><span class="resumo-stat-label">PA</span><span class="resumo-stat-val">'+paVend+'</span></div>';
+      cardHtml += '<div class="resumo-stat-row"><span class="resumo-stat-label">TM</span><span class="resumo-stat-val">'+tmVend+'</span></div>';
+      cardHtml += '<div class="resumo-stat-row"><span class="resumo-stat-label">Nº Vendas</span><span class="resumo-stat-val">'+nVendasS+'</span></div>';
+      cardHtml += '<div class="resumo-stat-row"><span class="resumo-stat-label">Peças</span><span class="resumo-stat-val">'+pecasS+'</span></div>';
+      if(metaDiaDStr) cardHtml += '<div class="resumo-stat-row" style="margin-top:0.4rem;padding-top:0.4rem;border-top:1px solid var(--border)"><span class="resumo-stat-label">Meta/dia <span style=\"font-size:0.6rem;opacity:0.7\">(D)</span></span><span class="resumo-stat-val" style="color:var(--accent4)">'+metaDiaDStr+'</span></div>';
+      if(projDezStr)  cardHtml += '<div class="resumo-stat-row" style="margin-top:0.4rem;padding-top:0.4rem;border-top:1px solid var(--border)"><span class="resumo-stat-label">📈 Proj. Dez.</span><span class="resumo-stat-val" style="color:var(--accent3)">'+projDezStr+'</span></div>';
+      cardHtml += '</div>';
+      html += cardHtml;
+    });
+
+    html += `</div></div>`;
+  });
+
+  document.getElementById("resumo-content").innerHTML = html || "<p style='color:var(--muted);padding:2rem'>Nenhum dado.</p>";
+}
+
+// ===== RENDER RESUMO =====
+let resumoVisao = "mes"; // "mes" | "dez1" | "dez2" | "dez3"
+function setResumoVis(vis, btn) {
+  resumoVisao = vis;
+  document.querySelectorAll("#panel-resumo .filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderResumo();
+}
+
+function renderResumo() {
+  if(resumoVisao !== "mes") {
+    const dezMap = {"dez1":1,"dez2":2,"dez3":3};
+    renderResumoDezenaEmResumo(dezMap[resumoVisao]);
+    return;
+  }
+  const grupoLojas = GRUPOS[grupoAtivo];
+  const todasLojas = ["AMAPA GARDEN SHOP LJ","SHOP MACAPA LJ","MACAPA LJR","OTICA SHOP MACAPA LJ"];
+  const lojas = todasLojas.filter(l => !grupoLojas || grupoLojas.includes(l));
+  let html = "";
+  lojas.forEach(loja => {
+    const vendedores = allData.filter(d=>d.loja===loja);
+    if(!vendedores.length) return;
+    const sorted  = [...vendedores].sort((a,b)=>b.vendas-a.vendas);
+    const totalV  = vendedores.reduce((s,d)=>s+d.vendas,0);
+    const avgPA   = vendedores.filter(d=>d.ppv>0).reduce((s,d)=>s+d.ppv,0) / (vendedores.filter(d=>d.ppv>0).length||1);
+    const avgTM   = vendedores.filter(d=>d.ticket>0).reduce((s,d)=>s+d.ticket,0) / (vendedores.filter(d=>d.ticket>0).length||1);
+    const r7030   = calc7030(vendedores);
+    const curvaOk = getCurvaStatusLoja(loja);
+    const mtdPct  = getMTDPctLoja(loja);
+    const cor     = sc(loja).tx;
+    const corBd   = sc(loja).bd;
+    const projLoja = getProjecaoLoja(loja);
+    html += `<div class="resumo-loja-card" style="border-color:${corBd}33">
+      <div class="resumo-loja-header">
+        <div class="resumo-loja-name" style="color:${cor}">${loja}</div>
+        <div class="resumo-loja-stats">
+          <div class="resumo-loja-stat"><label>Total Vendas</label><span>${fmtR(totalV)}</span></div>
+          <div class="resumo-loja-stat"><label>MTD Meta</label><span class="${statusMTD(mtdPct)}">${emojiMTD(mtdPct)} ${mtdPct.toFixed(1)}%</span></div>
+          <div class="resumo-loja-stat"><label>PA Médio</label><span>${fmtN(avgPA)}</span></div>
+          <div class="resumo-loja-stat"><label>TM Médio</label><span>${fmtR(avgTM)}</span></div>
+          <div class="resumo-loja-stat"><label>Curva</label><span>${curvaOk===null?"—":curvaOk?"🟢 Dentro":"🔴 Fora"}</span></div>
+          ${projLoja ? `<div class="resumo-loja-stat" style="border-left:1px solid var(--border);padding-left:1rem;margin-left:0.5rem"><label>📈 Projeção Mês</label><span style="color:var(--accent3)">${fmtR(projLoja.projecaoMes)}${projLoja.meta>0?` <span style="font-size:0.6rem;color:${projLoja.projecaoMes>=projLoja.meta?'var(--pos-color)':'var(--neg-color)'}">(${((projLoja.projecaoMes/projLoja.meta)*100).toFixed(0)}% meta)</span>`:''}</span></div>` : ''}
+        </div>
+      </div>
+      <div class="resumo-vend-grid">`;
+    sorted.forEach((d, i) => {
+      const nVendas = d.vendas>0&&d.ticket>0 ? Math.round(d.vendas/d.ticket) : 0;
+      const in7030  = d.vendas >= r7030.threshold;
+      const pctLider = r7030.lider>0 ? (d.vendas/r7030.lider*100).toFixed(0) : 0;
+      const posC    = i===0?"color:var(--accent4)":i===1?"color:#94a3b8":i===2?"color:#cd7f32":"color:var(--muted)";
+      html += `<div class="resumo-vend-card" style="border-color:${in7030?corBd+'33':'var(--neg-color)33'}">
+        <div class="resumo-vend-pos" style="${posC}">${i===0?"🥇":i===1?"🥈":i===2?"🥉":"#"+(i+1)} ${in7030?'<span class="badge-7030-ok">✓ 70/30</span>':'<span class="badge-7030-nok">✗ 70/30</span>'}</div>
+        <div class="resumo-vend-name" title="${d.nome}">${shortName(d.nome)}</div>
+        <div class="resumo-stat-row"><span class="resumo-stat-label">Vendas</span><span class="resumo-stat-val" style="color:var(--text)">${fmtR(d.vendas)}</span></div>
+        <div class="resumo-stat-row"><span class="resumo-stat-label">% do líder</span><span class="resumo-stat-val" style="color:${in7030?'var(--pos-color)':'var(--neg-color)'}">${pctLider}%</span></div>
+        <div class="resumo-stat-row"><span class="resumo-stat-label">PA</span><span class="resumo-stat-val">${fmtN(d.ppv||0)}</span></div>
+        <div class="resumo-stat-row"><span class="resumo-stat-label">TM</span><span class="resumo-stat-val">${fmtR(d.ticket||0)}</span></div>
+        <div class="resumo-stat-row"><span class="resumo-stat-label">Nº Vendas</span><span class="resumo-stat-val">${nVendas}</span></div>
+        <div class="resumo-stat-row"><span class="resumo-stat-label">Peças</span><span class="resumo-stat-val">${d.pecas}</span></div>
+        ${(() => {
+          const mv = getMetaDiariaVendedor(d.nome, d.loja);
+          if(!mv) return "";
+          const cor2 = mv.pctMeta >= 90 ? "var(--pos-color)" : mv.pctMeta >= 70 ? "var(--accent4)" : "var(--neg-color)";
+          return `<div class="resumo-stat-row" style="margin-top:0.4rem;padding-top:0.4rem;border-top:1px solid var(--border)">
+            <span class="resumo-stat-label">Meta/dia <span style="font-size:0.6rem;opacity:0.7">(M)</span></span>
+            <span class="resumo-stat-val" style="color:${cor2}">${fmtR(Math.max(0,mv.metaDia))}</span>
+          </div>
+          <div class="resumo-stat-row">
+            <span class="resumo-stat-label">% Meta</span>
+            <span class="resumo-stat-val" style="color:${cor2}">${mv.pctMeta.toFixed(1)}%</span>
+          </div>`;
+        })()}
+        ${(() => {
+          const pv = getProjecaoVendedor(d.nome);
+          if(!pv) return "";
+          return `<div class="resumo-stat-row" style="margin-top:0.4rem;padding-top:0.4rem;border-top:1px solid var(--border)">
+            <span class="resumo-stat-label">📈 Proj. Mês</span>
+            <span class="resumo-stat-val" style="color:var(--accent3)">${fmtR(pv.projecaoMes)}</span>
+          </div>`;
+        })()}
+      </div>`;
+    });
+    html += `</div></div>`;
+  });
+  document.getElementById("resumo-content").innerHTML = html || "<p style='color:var(--muted);padding:2rem'>Nenhum dado carregado.</p>";
+}
+
+// ===== RENDER COMPARADAS =====
+function catPermitida(nomeCat) {
+  if(!nomeCat) return false;
+  const n = nomeCat.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  return (n.includes("OCULOS")||(n==="OC")||n.includes("RELOGIO")||(n==="RE")||n.includes("GRAU")||(n==="CG")||n.includes("LENTE")||(n==="LE")||n.includes("ACESSOR")||n.includes("ACES")||(n==="AC"));
+}
+function renderComparadas() {
+  // CONFIGURE — lista de lojas para a aba Comparadas
+  const LOJAS_COMP = ["AMAPA GARDEN SHOP LJ","SHOP MACAPA LJ","MACAPA LJR","OTICA SHOP MACAPA LJ"];
+  const grupoLojas = GRUPOS[grupoAtivo];
+  const lojas = LOJAS_COMP.filter(l => !grupoLojas || grupoLojas.includes(l));
+  const atual    = parseBase(baseAtualData);
+  const anterior = parseBase(baseAnteriorData);
+  const container = document.getElementById("comp-container");
+
+  const resumoHtml = (() => {
+    const rows2 = lojas.map(loja => {
+      const a = atual[loja]    || { total_qtde:0, total_valor:0 };
+      const b = anterior[loja] || { total_qtde:0, total_valor:0 };
+      const varP = b.total_qtde  > 0 ? (a.total_qtde -b.total_qtde) /b.total_qtde *100 : 0;
+      const varF = b.total_valor > 0 ? (a.total_valor-b.total_valor)/b.total_valor*100 : 0;
+      let cen, cenCls;
+      if(varP>=0&&varF>=0){cen="↑ Crescimento";cenCls="yoy-green";}
+      else if(varP<0&&varF<0){cen="↓ Queda";cenCls="yoy-red";}
+      else if(varP>=0&&varF<0){cen="↑ Vol ↓ Valor";cenCls="yoy-yellow";}
+      else{cen="↓ Vol ↑ Valor";cenCls="yoy-yellow";}
+      const mtdPct2 = getMTDPctLoja(loja);
+      const curvaOk2 = getCurvaStatusLoja(loja);
+      return {loja,varP,varF,cen,cenCls,mtdPct2,curvaOk2};
+    });
+    const crescimento = rows2.filter(r=>r.cenCls==="yoy-green").length;
+    const queda       = rows2.filter(r=>r.cenCls==="yoy-red").length;
+    const misto       = rows2.filter(r=>r.cenCls==="yoy-yellow").length;
+    return `<div class="card" style="margin-bottom:1.5rem">
+      <div class="card-title" style="margin-bottom:1.25rem">📊 Resumo Geral de Cenários</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem">
+        <div style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:10px;padding:1rem;text-align:center">
+          <div style="font-size:2rem;font-weight:800;color:var(--pos-color)">${crescimento}</div>
+          <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:0.25rem">↑ Crescimento</div>
+        </div>
+        <div style="background:rgba(250,204,21,0.08);border:1px solid rgba(250,204,21,0.2);border-radius:10px;padding:1rem;text-align:center">
+          <div style="font-size:2rem;font-weight:800;color:var(--accent4)">${misto}</div>
+          <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:0.25rem">~ Misto</div>
+        </div>
+        <div style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);border-radius:10px;padding:1rem;text-align:center">
+          <div style="font-size:2rem;font-weight:800;color:var(--neg-color)">${queda}</div>
+          <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:0.25rem">↓ Queda</div>
+        </div>
+      </div>
+      <table class="comp-table">
+        <thead><tr><th>Loja</th><th>Cenário</th><th>Peças YoY</th><th>Fat. YoY</th><th>MTD Meta</th><th>Curva</th></tr></thead>
+        <tbody>${rows2.map(r => `<tr>
+          <td style="font-weight:700;color:${sc(r.loja).tx}">${r.loja}</td>
+          <td><span class="${r.cenCls}" style="font-weight:700">${r.cen}</span></td>
+          <td class="${statusYoY(r.varP)}">${emojiYoY(r.varP)} ${r.varP>=0?"+":""}${r.varP.toFixed(1)}%</td>
+          <td class="${statusYoY(r.varF)}">${emojiYoY(r.varF)} ${r.varF>=0?"+":""}${r.varF.toFixed(1)}%</td>
+          <td class="${statusMTD(r.mtdPct2)}">${r.mtdPct2.toFixed(1)}%</td>
+          <td>${r.curvaOk2===null?"—":r.curvaOk2?"🟢":"🔴"}</td>
+        </tr>`).join("")}</tbody>
+      </table>
+    </div>`;
+  })();
+
+  if(!Object.keys(atual).length && !Object.keys(anterior).length) {
+    container.innerHTML = `<div style="color:var(--muted);padding:2rem;text-align:center">Clique em 🔄 Atualizar Dados para carregar.</div>`;
+    return;
+  }
+  container.innerHTML = resumoHtml;
+
+  function cenario(vP, vF) {
+    if(vP>=0&&vF>=0) return {cls:"yoy-green",label:"↑ Crescimento"};
+    if(vP<0&&vF<0)   return {cls:"yoy-red",label:"↓ Queda"};
+    if(vP>=0&&vF<0)  return {cls:"yoy-yellow",label:"↑ Vol ↓ Valor"};
+                      return {cls:"yoy-yellow",label:"↓ Vol ↑ Valor"};
+  }
+  function varCols(diffQ,pQ,diffF,pF) {
+    const clsP=statusYoY(pQ),emP=emojiYoY(pQ);
+    const lP=(pQ===999)?"🟢 Novo":`${emP} ${pQ>=0?"+":""}${pQ.toFixed(1)}%`;
+    const clsF=statusYoY(pF),emF=emojiYoY(pF);
+    const lF=(pF===999)?"🟢 Novo":`${emF} ${pF>=0?"+":""}${pF.toFixed(1)}%`;
+    return {
+      tdPecas:`<td class="${clsP}" style="white-space:nowrap">${lP}<br><span style="font-size:0.6rem;opacity:0.75">${diffQ>=0?"+":""}${diffQ} pç</span></td>`,
+      tdFat:`<td class="${clsF}" style="white-space:nowrap">${lF}<br><span style="font-size:0.6rem;opacity:0.75">${diffF>=0?"+":""}${fmtR(diffF)}</span></td>`,
+    };
+  }
+
+  let html2 = "";
+  lojas.forEach(loja => {
+    const a = atual[loja]    || { total_qtde:0, total_valor:0, categorias:[] };
+    const b = anterior[loja] || { total_qtde:0, total_valor:0, categorias:[] };
+    const cor   = sc(loja).tx;
+    const corBd = sc(loja).bd;
+    const todasCats = [...new Set([...b.categorias.map(c=>c.nome),...a.categorias.map(c=>c.nome)])].sort();
+    const tVarP = b.total_qtde>0?(a.total_qtde-b.total_qtde)/b.total_qtde*100:(a.total_qtde>0?999:0);
+    const tVarF = b.total_valor>0?(a.total_valor-b.total_valor)/b.total_valor*100:(a.total_valor>0?999:0);
+    const cenTot = cenario(tVarP===999?1:tVarP, tVarF===999?1:tVarF);
+
+    html2 += `<div class="card" style="margin-bottom:1.5rem;border-color:${corBd}33">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:0.75rem;">
+        <div style="font-weight:800;font-size:0.95rem;color:${cor}">${loja}</div>
+        <div style="display:flex;gap:1.5rem;font-size:0.68rem;flex-wrap:wrap;align-items:center;">
+          <span style="color:var(--muted)">Peças: <strong style="color:var(--text)">${b.total_qtde} → ${a.total_qtde}</strong></span>
+          <span style="color:var(--muted)">Faturamento: <strong style="color:var(--text)">${fmtR(b.total_valor)} → ${fmtR(a.total_valor)}</strong></span>
+          <span class="${cenTot.cls}" style="font-weight:700;font-size:0.72rem">${cenTot.label}</span>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="comp-table">
+          <thead><tr><th>Categoria</th><th>Peças Ant.</th><th>Peças Atual</th><th>Var. Peças</th><th>Fat. Ant.</th><th>Fat. Atual</th><th>Var. Fat.</th><th>Cenário</th></tr></thead>
+          <tbody>`;
+
+    todasCats.forEach(cat => {
+      const cA = a.categorias.find(c=>c.nome===cat)||{qtde:0,valor:0};
+      const cB = b.categorias.find(c=>c.nome===cat)||{qtde:0,valor:0};
+      if(!catPermitida(cat)) return;
+      if(cA.qtde===0&&cA.valor===0&&cB.qtde===0&&cB.valor===0) return;
+      const isNovo = cB.qtde===0&&cB.valor===0&&(cA.qtde>0||cA.valor>0);
+      const varP = cB.qtde>0?(cA.qtde-cB.qtde)/cB.qtde*100:(cA.qtde>0?999:0);
+      const varF = cB.valor>0?(cA.valor-cB.valor)/cB.valor*100:(cA.valor>0?999:0);
+      const c = cenario(varP===999?1:varP, varF===999?1:varF);
+      const cols = varCols(cA.qtde-cB.qtde,varP,cA.valor-cB.valor,varF);
+      html2 += `<tr style="${isNovo?'background:rgba(250,204,21,0.04)':''}">
+        <td style="font-weight:600;color:var(--text)">${cat}${isNovo?' <span style="font-size:0.55rem;color:var(--accent4);background:rgba(250,204,21,0.15);padding:0.1rem 0.4rem;border-radius:4px;margin-left:0.3rem">NOVO</span>':''}</td>
+        <td style="color:var(--muted);text-align:right">${cB.qtde}</td>
+        <td style="color:var(--text);font-weight:600;text-align:right">${cA.qtde}</td>
+        ${cols.tdPecas}
+        <td style="color:var(--muted);text-align:right">${fmtR(cB.valor)}</td>
+        <td style="color:var(--text);font-weight:600;text-align:right">${fmtR(cA.valor)}</td>
+        ${cols.tdFat}
+        <td><span class="${c.cls}" style="font-size:0.65rem;font-weight:600">${c.label}</span></td>
+      </tr>`;
+    });
+
+    const catsP = todasCats.filter(cat => catPermitida(cat));
+    const tPQ = catsP.reduce((s,cat)=>{ const c=b.categorias.find(x=>x.nome===cat); return s+(c?c.qtde:0); },0);
+    const tAQ = catsP.reduce((s,cat)=>{ const c=a.categorias.find(x=>x.nome===cat); return s+(c?c.qtde:0); },0);
+    const tPF = catsP.reduce((s,cat)=>{ const c=b.categorias.find(x=>x.nome===cat); return s+(c?c.valor:0); },0);
+    const tAF = catsP.reduce((s,cat)=>{ const c=a.categorias.find(x=>x.nome===cat); return s+(c?c.valor:0); },0);
+    const tVP = tPQ>0?(tAQ-tPQ)/tPQ*100:(tAQ>0?999:0);
+    const tVF = tPF>0?(tAF-tPF)/tPF*100:(tAF>0?999:0);
+    const cenT = cenario(tVP===999?1:tVP, tVF===999?1:tVF);
+    const totC = varCols(tAQ-tPQ,tVP,tAF-tPF,tVF);
+    html2 += `<tr style="border-top:2px solid var(--border);background:var(--table-row-hover)">
+      <td style="font-weight:800;color:var(--text)">TOTAL</td>
+      <td style="color:var(--muted);text-align:right;font-weight:700">${tPQ}</td>
+      <td style="color:var(--text);text-align:right;font-weight:800">${tAQ}</td>
+      ${totC.tdPecas}
+      <td style="color:var(--muted);text-align:right;font-weight:700">${fmtR(tPF)}</td>
+      <td style="color:var(--text);text-align:right;font-weight:800">${fmtR(tAF)}</td>
+      ${totC.tdFat}
+      <td><span class="${cenT.cls}" style="font-size:0.65rem;font-weight:800">${cenT.label}</span></td>
+    </tr>`;
+    html2 += `</tbody></table></div></div>`;
+  });
+  container.innerHTML += html2;
+}
+
+// ===== GRUPOS =====
+// CONFIGURE — defina seus grupos de lojas (use null para "todas")
+const GRUPOS = {
+  TODAS: null,
+  LOJAS: ["AMAPA GARDEN SHOP LJ","SHOP MACAPA LJ","MACAPA LJR"],
+  OTICAS: ["OTICA SHOP MACAPA LJ"],
+};
+let grupoAtivo = "TODAS";
+
+function setGrupo(g, btn) {
+  grupoAtivo = g;
+  document.querySelectorAll(".grupo-btn").forEach(b => {
+    b.classList.remove("active-all","active-verm","active-otica","active-acium");
+  });
+  const cls = g==="TODAS"?"active-all":g==="LOJAS"?"active-verm":g==="OTICAS"?"active-otica":"active-acium";
+  btn.classList.add(cls);
+  filters.indicadores = "TODAS";
+  buildFilters();
+  renderVendas(); renderPA(); renderTM(); renderCurva(); renderResumo(); renderComparadas(); renderDezena(); renderTermometro();
+}
+
+// ===== TV MODE =====
+const TV_TABS = ["indicadores","curva","resumo","comparadas","dezena","termometro"];
+const TV_INTERVAL = 15000;
+let tvTimer = null;
+let tvActive = false;
+
+function toggleTVMode() {
+  const btn = document.getElementById("btn-tv");
+  tvActive = !tvActive;
+  if(tvActive) {
+    btn.textContent = "⏹ Parar TV"; btn.classList.add("tv-on");
+    runTVStep(); tvTimer = setInterval(runTVStep, TV_INTERVAL);
+  } else {
+    btn.textContent = "📺 Modo TV"; btn.classList.remove("tv-on");
+    clearInterval(tvTimer); tvTimer = null;
+  }
+}
+function runTVStep() {
+  const active  = document.querySelector(".tab-btn.active");
+  const current = active ? active.getAttribute("data-tab") : TV_TABS[0];
+  const nextIdx = (TV_TABS.indexOf(current) + 1) % TV_TABS.length;
+  const nextTab = TV_TABS[nextIdx];
+  const nextBtn = document.querySelector(`.tab-btn[data-tab="${nextTab}"]`);
+  if(nextBtn) {
+    switchTab(nextTab, nextBtn);
+    setTimeout(() => {
+      const tabNav = document.querySelector(".tab-nav");
+      if(tabNav) window.scrollTo({ top: tabNav.getBoundingClientRect().bottom + window.scrollY + 8, behavior:"smooth" });
+    }, 120);
+  }
+}
+
+// ===== DEZENA =====
+let dezenaAtiva = 1;
+function setDezena(n, btn) {
+  dezenaAtiva = n;
+  document.querySelectorAll("#panel-dezena .filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderDezena();
+}
+function diasDaDezena(dezena) {
+  if(dezena===1) return {min:1,max:10};
+  if(dezena===2) return {min:11,max:20};
+  return {min:21,max:31};
+}
+function getMetaDezena(lojaIdx, dezena) {
+  const meta = META_MENSAL[lojaIdx] || 0;
+  if(!meta) return 0;
+  const {min, max} = diasDaDezena(dezena);
+  if(lojaIdx < 0 || lojaIdx >= LOJAS_CURVA.length) { return meta * ({1:0.30,2:0.30,3:0.40}[dezena]||0.33); }
+  const somaDezena = CURVA_RAW.filter(r => { const d=parseInt(r.data.split("/")[0]); return d>=min&&d<=max; }).reduce((s,r) => s+(r.vals[lojaIdx]||0),0);
+  const somaTotal  = CURVA_RAW.reduce((s,r) => s+(r.vals[lojaIdx]||0),0);
+  if(somaTotal <= 0) return meta * ({1:0.30,2:0.30,3:0.40}[dezena]||0.33);
+  return meta * (somaDezena / somaTotal);
+}
+
+// Retorna meta/dia recalculada pela curva DENTRO da dezena
+// desvio = realizado até ontem vs curva esperada até ontem (dentro da dezena)
+// meta hoje = curva hoje - (desvio × peso de hoje dentro da dezena)
+function getMetaDiaDezena(lojaIdx, dezenaAtiva, realizadoDezena) {
+  if(lojaIdx < 0 || lojaIdx >= LOJAS_CURVA.length) return null;
+  if(CURVA_RAW.length === 0) return null;
+  const {min, max} = diasDaDezena(dezenaAtiva);
+  const hojeD = new Date().getDate();
+  const mesHoje = new Date().getMonth() + 1;
+  // Só aplica se estamos dentro da dezena atual
+  const mesCurva = CURVA_RAW.length > 0 ? parseInt(CURVA_RAW[0].data.split("/")[1]) : mesHoje;
+  if(mesCurva !== mesHoje) return null;
+  let curvaAteOntem = 0, curvaHoje = 0, curvaAposHoje = 0;
+  CURVA_RAW.forEach(r => {
+    const partes = r.data.split("/");
+    const dia = parseInt(partes[0]);
+    const mes = parseInt(partes[1]);
+    if(mes !== mesHoje) return;
+    if(dia < min || dia > max) return;
+    const val = r.vals[lojaIdx] || 0;
+    if(dia < hojeD)   curvaAteOntem  += val;
+    if(dia === hojeD) curvaHoje       = val;
+    if(dia > hojeD)   curvaAposHoje  += val;
+  });
+  if(curvaHoje <= 0) return null;
+  const desvio = realizadoDezena - curvaAteOntem;
+  const curvaRestComHoje = curvaHoje + curvaAposHoje;
+  const pesoHoje = curvaRestComHoje > 0 ? curvaHoje / curvaRestComHoje : 0;
+  const metaDia = curvaHoje - desvio * pesoHoje;
+  return { metaDia, curvaHoje, desvio, curvaAteOntem };
+}
+
+// Retorna meta/dia recalculada pela curva de vendedores DENTRO da dezena
+function getMetaDiaDezenaVendedor(nomeVendedor, loja, realizadoDezena) {
+  if(!curvaVendData || curvaVendData.length < 3) return null;
+  const gerente = /^GERENTE\s/i.test(nomeVendedor.trim());
+  const cargo   = gerente ? "GERENTE" : "VENDEDOR";
+  const rowLojas  = curvaVendData[0].map(h => String(h||"").trim().toUpperCase());
+  const rowCargos = curvaVendData[1].map(h => String(h||"").trim().toUpperCase());
+  // CONFIGURE — mapeamento de nome interno para nome no Sheets (coluna de loja na CurvaVend)
+  const LOJA_NORM = {"AMAPA GARDEN SHOP LJ":"AMAPA GARDEN SHOP LJ","SHOP MACAPA LJ":"SHOP MACAPA LJ","MACAPA LJR":"MACAPA LJR","OTICA SHOP MACAPA LJ":"OTICA SHOP MACAPA LJ"};
+  const lojaNorm  = LOJA_NORM[loja] || loja.toUpperCase();
+  const colIdx = rowLojas.findIndex((l,i) => (l===lojaNorm||l.includes(lojaNorm)) && rowCargos[i]===cargo);
+  if(colIdx < 0) return null;
+  function parseVendVal(v) {
+    if(!v || String(v).trim()==="-" || String(v).trim()==="R$  -") return 0;
+    const s = String(v).replace(/[R$\s]/g,"");
+    if(!s.includes(",")) return parseFloat(s) || 0;
+    const raw = s.replace(/\.(?=\d{3})/g,"").replace(",",".");
+    return parseFloat(raw) || 0;
+  }
+  function getDiaMes(cell) {
+    const s = String(cell||"").trim();
+    const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(iso) return { dia: parseInt(iso[3]), mes: parseInt(iso[2]) };
+    const sl = s.match(/^(\d{1,2})\/(\d{1,2})/);
+    if(sl) return { dia: parseInt(sl[1]), mes: parseInt(sl[2]) };
+    return null;
+  }
+  const hojeD = new Date().getDate();
+  const mesHoje = new Date().getMonth() + 1;
+  const {min, max} = diasDaDezena(hojeD<=10?1:hojeD<=20?2:3);
+  let curvaAteOntem = 0, curvaHoje = 0, curvaAposHoje = 0;
+  curvaVendData.slice(2).forEach(row => {
+    const dataCell = String(row[0]||"").trim();
+    if(!dataCell || dataCell.toLowerCase().includes("meta")) return;
+    const dm = getDiaMes(dataCell);
+    if(!dm || dm.mes !== mesHoje) return;
+    if(dm.dia < min || dm.dia > max) return;
+    const val = parseVendVal(row[colIdx]);
+    if(dm.dia < hojeD)   curvaAteOntem  += val;
+    if(dm.dia === hojeD) curvaHoje       = val;
+    if(dm.dia > hojeD)   curvaAposHoje  += val;
+  });
+  if(curvaHoje <= 0) return null;
+  const desvio = realizadoDezena - curvaAteOntem;
+  const curvaRestComHoje = curvaHoje + curvaAposHoje;
+  const pesoHoje = curvaRestComHoje > 0 ? curvaHoje / curvaRestComHoje : 0;
+  const metaDia = curvaHoje - desvio * pesoHoje;
+  if(!isFinite(metaDia) || metaDia < 0) return null;
+  if(!isFinite(metaDia) || metaDia < 0) return null;
+  return { metaDia, curvaHoje, desvio }; { metaDia, curvaHoje, desvio };
+}
+
+function extraiDia(v) {
+  if(!v && v !== 0) return null;
+  const s = String(v);
+  if(s.match(/^\d{4}-\d{2}-\d{2}/)) return parseInt(s.substring(8,10));
+  const m = s.match(/^(\d{1,2})\//); if(m) return parseInt(m[1]);
+  try { if(v instanceof Date) return new Date(v).getDate(); } catch(e){}
+  return null;
+}
+function parseFaturamento(rows) {
+  const toN = v => {
+    if(v===""||v===null||v===undefined||v==="-") return 0;
+    const s = String(v).replace(/[R$\s]/g,"").replace(/\.(?=\d{3})/g,"").replace(",",".");
+    return parseFloat(s)||0;
+  };
+  const isData = v => extraiDia(v) !== null;
+  const result = {};
+  let vendedorAtual = null;
+  rows.forEach(row => {
+    const colA = row[0];
+    const colB = row[1];
+    const colAStr = String(colA||"").trim();
+    if(!colAStr && !colA) return;
+    if(colAStr.toLowerCase().startsWith("sub-totais")||colAStr.toLowerCase().startsWith("sub totais")){ vendedorAtual=null; return; }
+    if(isData(colA)) {
+      if(!vendedorAtual || !result[vendedorAtual]) return;
+      const dia = extraiDia(colA); const valor = toN(colB);
+      if(valor <= 0) return;
+      result[vendedorAtual].diasMap[dia] = (result[vendedorAtual].diasMap[dia]||0) + valor;
+      return;
+    }
+    if(colAStr.toUpperCase().startsWith("LOJA VENDA")){ vendedorAtual=null; return; }
+    vendedorAtual = colAStr;
+    if(!result[vendedorAtual]) {
+      const loja = (() => {
+        const n = vendedorAtual;
+        if(STORE_MAP[n]) return STORE_MAP[n];
+        if(lojaMapDinamico[n]) return lojaMapDinamico[n];
+        const cm = n.match(/\((\d+)\)\s*$/);
+        if(cm) { if(STORE_MAP_BY_CODE[cm[1]]) return STORE_MAP_BY_CODE[cm[1]]; if(lojaMapDinamico[cm[1]]) return lojaMapDinamico[cm[1]]; }
+        const normS = s => s.trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+        const base = normS(n.replace(/\s*\(\d+\)\s*$/,''));
+        const all = {...STORE_MAP, ...lojaMapDinamico};
+        const k = Object.keys(all).find(k => normS(k.replace(/\s*\(\d+\)\s*$/,'')) === base);
+        return k ? all[k] : '—';
+      })();
+      result[vendedorAtual] = { loja, diasMap:{} };
+    }
+  });
+  return result;
+}
+
+function renderDezena() {
+  const container = document.getElementById("dezena-content");
+  if(!faturamentoData || faturamentoData.length < 2) {
+    container.innerHTML = "<p style='color:var(--muted);padding:2rem'>Sem dados de faturamento.</p>";
+    return;
+  }
+  const fmtV = v => "R$\u00a0" + Math.round(v).toLocaleString("pt-BR");
+  const grupoLojas = GRUPOS[grupoAtivo];
+  const todasLojas = ["AMAPA GARDEN SHOP LJ","SHOP MACAPA LJ","MACAPA LJR","OTICA SHOP MACAPA LJ"];
+  const lojasFiltradas = todasLojas.filter(l => !grupoLojas || grupoLojas.includes(l));
+  const {min, max} = diasDaDezena(dezenaAtiva);
+  const dataRows = faturamentoData[0] && String(faturamentoData[0][0]||"").toLowerCase().includes("emiss")
+    ? faturamentoData.slice(1) : faturamentoData;
+  const vendMap = parseFaturamento(dataRows);
+  const vendMapDez = {};
+  Object.entries(vendMap).forEach(([nome, v]) => {
+    const diasDez = Object.entries(v.diasMap).filter(([d]) => { const d2=parseInt(d); return d2>=min&&d2<=max; });
+    if(!diasDez.length) return;
+    vendMapDez[nome] = { ...v, totalDezena: diasDez.reduce((s,[,val])=>s+val,0), diasMap: Object.fromEntries(diasDez.map(([d,val])=>[parseInt(d),val])) };
+  });
+  const lojaVendMap = {};
+  Object.entries(vendMapDez).forEach(([nome, v]) => {
+    if(!lojaVendMap[v.loja]) lojaVendMap[v.loja] = [];
+    lojaVendMap[v.loja].push({nome, ...v});
+  });
+  const diasCols = [];
+  for(let d=min; d<=max&&d<=31; d++) diasCols.push(d);
+  const hoje = new Date().getDate();
+  const diasRestantesDez = diasCols.filter(d => d > hoje).length;
+  let html = "";
+  const dezNome = dezenaAtiva===1?"1ª Dezena (01–10)":dezenaAtiva===2?"2ª Dezena (11–20)":"3ª Dezena (21–fim)";
+  html += `<div class="resumo-section-title">📅 ${dezNome}</div>`;
+  lojasFiltradas.forEach(loja => {
+    const vendedores = (lojaVendMap[loja]||[]).sort((a,b)=>b.totalDezena-a.totalDezena);
+    if(!vendedores.length) return;
+    const lojaIdx = ["AMAPA GARDEN SHOP LJ","SHOP MACAPA LJ","MACAPA LJR","OTICA SHOP MACAPA LJ"].indexOf(loja);
+    const metaDezLoja  = getMetaDezena(lojaIdx>=0?lojaIdx:0, dezenaAtiva);
+    const totalDezLoja = vendedores.reduce((s,v)=>s+v.totalDezena,0);
+    const pctMeta      = metaDezLoja>0?(totalDezLoja/metaDezLoja)*100:0;
+    // Meta/dia da loja recalculada pela curva dentro da dezena
+    const mdDezLoja    = getMetaDiaDezena(lojaIdx>=0?lojaIdx:0, dezenaAtiva, totalDezLoja);
+    const vendsMes = allData.filter(d=>d.loja===loja);
+    const avgPA = vendsMes.filter(d=>d.ppv>0).reduce((s,d)=>s+d.ppv,0)/(vendsMes.filter(d=>d.ppv>0).length||1);
+    const avgTM = vendsMes.filter(d=>d.ticket>0).reduce((s,d)=>s+d.ticket,0)/(vendsMes.filter(d=>d.ticket>0).length||1);
+    const r7030 = (() => {
+      if(!vendedores.length) return {lider:0,threshold:0,pct:0};
+      const sorted = [...vendedores].sort((a,b)=>b.totalDezena-a.totalDezena);
+      const lider = sorted[0].totalDezena; const threshold = lider * 0.7;
+      const ok = sorted.filter(v => v.totalDezena >= threshold);
+      return { lider, threshold, pct:(ok.length/sorted.length)*100 };
+    })();
+    const cor   = sc(loja).tx||"var(--accent)";
+    const corBd = sc(loja).bd;
+    html += `<div class="resumo-loja-card" style="border-color:${corBd}33;margin-bottom:2rem">
+      <div class="resumo-loja-header">
+        <div class="resumo-loja-name" style="color:${cor}">${loja}</div>
+        <div class="resumo-loja-stats">
+          <div class="resumo-loja-stat"><label>Total Dezena</label><span>${fmtV(totalDezLoja)}</span></div>
+          <div class="resumo-loja-stat"><label>Meta Dezena</label><span>${fmtV(metaDezLoja)}</span></div>
+          <div class="resumo-loja-stat"><label>% Meta</label><span class="${pctMeta>=100?'yoy-green':pctMeta>=70?'yoy-yellow':'yoy-red'}">${pctMeta.toFixed(1)}%</span></div>
+          <div class="resumo-loja-stat"><label>PA Mês</label><span>${fmtN(avgPA)}</span></div>
+          <div class="resumo-loja-stat"><label>TM Mês</label><span>${fmtV(avgTM)}</span></div>
+          <div class="resumo-loja-stat"><label>70/30</label><span>${emoji7030(r7030.pct)} ${r7030.pct.toFixed(0)}%</span></div>
+          ${mdDezLoja ? `<div class="resumo-loja-stat"><label>Meta/Dia Dez.</label><span style="color:var(--accent4);font-weight:700">${fmtV(mdDezLoja.metaDia)}</span></div>` : ''}
+        </div>
+      </div>
+      <div style="overflow-x:auto;margin-top:1rem">
+        <table class="comp-table">
+          <thead><tr>
+            <th>Vendedor</th>
+            ${diasCols.map(d=>`<th style="text-align:right;min-width:66px">${String(d).padStart(2,"0")}</th>`).join("")}
+            <th style="text-align:right;min-width:78px">Total</th>
+            <th style="text-align:right;min-width:60px">% Meta</th>
+            <th style="text-align:right;min-width:78px">Acum.</th>
+            <th style="text-align:right;min-width:78px">Meta/Dia (D)</th>
+            <th style="text-align:right;min-width:84px;color:var(--accent3)">Proj. Dez.</th>
+            <th style="text-align:center;min-width:52px">70/30</th>
+          </tr></thead>
+          <tbody>`;
+    vendedores.forEach(v => {
+      const vendMes = allData.find(d=>d.nome===v.nome);
+      const acumMes = vendMes ? vendMes.vendas : 0;
+      const gerente = /^GERENTE\s/i.test(v.nome);
+      const mvIndiv = getMetaDiariaVendedor(v.nome, loja);
+      // Meta individual da dezena: usa proporção da curva se disponível, senão divide a meta da loja
+      const metaIndivDez = mvIndiv
+        ? mvIndiv.meta * (getMetaDezena(lojaIdx>=0?lojaIdx:0, dezenaAtiva) / (META_MENSAL[lojaIdx>=0?lojaIdx:0]||1))
+        : metaDezLoja / Math.max(vendedores.filter(x=>/^GERENTE\s/i.test(x.nome)===gerente).length,1);
+      const pctVend    = metaIndivDez>0?(v.totalDezena/metaIndivDez)*100:0;
+      // Meta/dia recalculada pela curva DENTRO da dezena
+      const mvDez = getMetaDiaDezenaVendedor(v.nome, loja, v.totalDezena);
+      const metaDiaRec = mvDez ? mvDez.metaDia : (diasRestantesDez>0 ? Math.max(0, metaIndivDez - v.totalDezena)/diasRestantesDez : 0);
+      const in7030     = r7030.lider>0 && v.totalDezena>=r7030.threshold;
+      const bg7030     = in7030 ? "rgba(52,211,153,0.05)" : "rgba(248,113,113,0.04)";
+      html += `<tr style="background:${bg7030}">
+        <td>
+          <div class="seller-name" title="${v.nome}">${shortName(v.nome)}</div>
+          ${gerente?'<span style="font-size:0.55rem;color:var(--accent2);background:rgba(255,107,53,0.15);padding:0.1rem 0.35rem;border-radius:3px;display:inline-block;margin-top:2px">GERENTE</span>':''}
+        </td>
+        ${diasCols.map(d=>{const val=v.diasMap[d]||0;return`<td style="text-align:right;font-size:0.68rem;color:${val>0?'var(--text)':'var(--muted)'}">${val>0?fmtV(val):"—"}</td>`;}).join("")}
+        <td style="text-align:right;font-weight:700;color:var(--accent);font-size:0.72rem">${fmtV(v.totalDezena)}</td>
+        <td style="text-align:right;color:${pctVend>=100?'var(--pos-color)':pctVend>=70?'var(--accent4)':'var(--neg-color)'};font-weight:600;font-size:0.72rem">${pctVend.toFixed(0)}%</td>
+        <td style="text-align:right;color:var(--accent3);font-size:0.72rem">${fmtV(acumMes)}</td>
+        <td style="text-align:right;color:${metaDiaRec>0?'var(--accent4)':'var(--pos-color)'};font-weight:600;font-size:0.72rem">${metaDiaRec>0?fmtV(metaDiaRec)+'<span style=\'font-size:0.55rem;opacity:0.6\' > (D)</span>':'✓ Meta'}</td>
+        <td style="text-align:right;color:var(--accent3);font-size:0.72rem;font-weight:600;">${(() => { const pv=getProjecaoVendedor(v.nome); return pv?fmtV(pv.projecaoDezena):'—'; })()}</td>
+        <td style="text-align:center;font-size:0.9rem">${in7030?'<span style="color:var(--pos-color)">✓</span>':'<span style="color:var(--neg-color)">✗</span>'}</td>
+      </tr>`;
+    });
+    html += `<tr style="border-top:2px solid var(--border);background:var(--table-row-hover)">
+      <td style="font-weight:800;color:var(--text);font-size:0.72rem">TOTAL</td>
+      ${diasCols.map(d=>{const s=vendedores.reduce((a,v)=>a+(v.diasMap[d]||0),0);return`<td style="text-align:right;font-weight:700;font-size:0.72rem;color:${s>0?'var(--text)':'var(--muted)'}">${s>0?fmtV(s):"—"}</td>`;}).join("")}
+      <td style="text-align:right;font-weight:800;color:var(--accent)">${fmtV(totalDezLoja)}</td>
+      <td style="text-align:right;font-weight:800;color:${pctMeta>=100?'var(--pos-color)':pctMeta>=70?'var(--accent4)':'var(--neg-color)'}">${pctMeta.toFixed(1)}%</td>
+      <td style="text-align:right;color:var(--accent3);font-weight:700">${fmtV(vendsMes.reduce((s,d)=>s+d.vendas,0))}</td>
+      <td style="text-align:right;font-weight:800;color:var(--accent4)">${mdDezLoja ? fmtV(mdDezLoja.metaDia)+'<span style=\'font-size:0.55rem;opacity:0.6\' > (D)</span>' : '—'}</td>
+      <td></td>
+      <td style="text-align:right;color:var(--accent3);font-weight:700;">${(() => { const pj=getProjecaoLoja(loja); return pj?fmtV(pj.projecaoDezena):'—'; })()}</td>
+      <td></td>
+    </tr>`;
+    html += `</tbody></table></div></div>`;
+  });
+  if(!html.includes("resumo-loja-card")) html = "<p style='color:var(--muted);padding:2rem'>Nenhum dado para esta dezena.</p>";
+  container.innerHTML = html;
+}
+
+// ===== TERMÔMETRO =====
+let termGrupoAtivo = "TODAS";
+let termCharts = {};
+
+function setTermGrupo(g, btn) {
+  termGrupoAtivo = g;
+  document.querySelectorAll("#panel-termometro .filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderTermometro();
+}
+function lojaDoVendedor(nomeCompleto) {
+  if(!nomeCompleto) return null;
+  // 1. Match exato
+  if(STORE_MAP[nomeCompleto]) return STORE_MAP[nomeCompleto];
+  if(lojaMapDinamico[nomeCompleto]) return lojaMapDinamico[nomeCompleto];
+  // 2. Código numérico — ID único do ERP
+  const cm = nomeCompleto.match(/\((\d+)\)\s*$/);
+  if(cm) {
+    if(STORE_MAP_BY_CODE[cm[1]]) return STORE_MAP_BY_CODE[cm[1]];
+    if(lojaMapDinamico[cm[1]])   return lojaMapDinamico[cm[1]];
+  }
+  // 3. Fallback sem código, sem acento, case-insensitive
+  const normS = s => s.trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const base = normS(nomeCompleto.replace(/\s*\(\d+\)\s*$/,''));
+  const all = {...STORE_MAP, ...lojaMapDinamico};
+  const k = Object.keys(all).find(k => normS(k.replace(/\s*\(\d+\)\s*$/,'')) === base);
+  return k ? all[k] : null;
+}
+function lojaNoGrupoTerm(loja) {
+  if(termGrupoAtivo === "TODAS") return true;
+  const map = {"LOJAS":["AMAPA GARDEN SHOP LJ","SHOP MACAPA LJ","MACAPA LJR"],"OTICAS":["OTICA SHOP MACAPA LJ"]};
+  return (map[termGrupoAtivo]||[]).includes(loja);
+}
+function parseTermSheet(rows, catNome) {
+  if(!rows||rows.length < 2) return [];
+  const result = [];
+  rows.slice(1).forEach(row => {
+    const nome = String(row[1]||"").trim();
+    const qtde = parseInt(String(row[2]||"0").replace(/[^\d]/g,""))||0;
+    if(!nome || qtde <= 0) return;
+    const loja = lojaDoVendedor(nome);
+    result.push({ nome, qtde, loja: loja||"—", cat: catNome });
+  });
+  return result;
+}
+
+function renderTermometro() {
+  const container = document.getElementById("termometro-content");
+  const CATS = ["OC","RE","CG","LE","Aces"];
+  const CAT_COLORS = {
+    "OC":  {bg:"rgba(0,119,204,0.65)",  tx:"#0077cc"},
+    "RE":  {bg:"rgba(108,63,199,0.65)", tx:"#6c3fc7"},
+    "CG":  {bg:"rgba(224,92,27,0.65)",  tx:"#e05c1b"},
+    "LE":  {bg:"rgba(181,136,0,0.65)",  tx:"#b58800"},
+    "Aces":{bg:"rgba(26,158,92,0.65)",  tx:"#1a9e5c"},
+  };
+  const hasDados = CATS.some(cat => termometrosData[cat] && termometrosData[cat].length > 1);
+  if(!hasDados) {
+    container.innerHTML = "<p style='color:var(--muted);padding:2rem'>Sem dados. Preencha as abas Term. OC, Term. RE, etc. e clique em 🔄 Atualizar.</p>";
+    return;
+  }
+  Object.values(termCharts).forEach(c => { try { c.destroy(); } catch(e){} });
+  termCharts = {};
+  const todasLojas = ["AMAPA GARDEN SHOP LJ","SHOP MACAPA LJ","MACAPA LJR","OTICA SHOP MACAPA LJ"];
+  const lojasFiltradas = todasLojas.filter(l => lojaNoGrupoTerm(l));
+  const dadosPorLoja = {};
+  lojasFiltradas.forEach(l => { dadosPorLoja[l] = {}; });
+  CATS.forEach(cat => {
+    parseTermSheet(termometrosData[cat]||[], cat).forEach(v => {
+      if(!lojaNoGrupoTerm(v.loja)||v.loja==="—") return;
+      if(!dadosPorLoja[v.loja]) dadosPorLoja[v.loja] = {};
+      if(!dadosPorLoja[v.loja][v.nome]) dadosPorLoja[v.loja][v.nome] = {};
+      dadosPorLoja[v.loja][v.nome][cat] = (dadosPorLoja[v.loja][v.nome][cat]||0) + v.qtde;
+    });
+  });
+  let html = `<div class="card" style="margin-bottom:2rem">
+    <div class="card-title">📊 Resumo — Peças por Loja e Categoria</div>
+    <div style="overflow-x:auto"><table class="comp-table">
+      <thead><tr><th>Loja</th>${CATS.map(c=>`<th style="text-align:right;color:${CAT_COLORS[c].tx}">${c}</th>`).join("")}<th style="text-align:right">Total</th></tr></thead>
+      <tbody>${lojasFiltradas.map(loja => {
+        const vendores = dadosPorLoja[loja]||{};
+        const vals = CATS.map(cat => Object.values(vendores).reduce((s,v)=>s+(v[cat]||0),0));
+        const total = vals.reduce((s,v)=>s+v,0);
+        if(!total) return "";
+        return `<tr><td style="font-weight:700;color:${sc(loja).tx}">${loja}</td>${vals.map((v,i)=>`<td style="text-align:right;color:${CAT_COLORS[CATS[i]].tx};font-weight:${v>0?'700':'400'}">${v>0?v:"—"}</td>`).join("")}<td style="text-align:right;color:var(--text);font-weight:800">${total}</td></tr>`;
+      }).join("")}</tbody>
+    </table></div>
+  </div>`;
+  lojasFiltradas.forEach(loja => {
+    const vendores = dadosPorLoja[loja]||{};
+    const nomes = Object.keys(vendores).filter(n => CATS.some(c => (vendores[n][c]||0)>0));
+    if(!nomes.length) return;
+    nomes.sort((a,b) => CATS.reduce((s,c)=>s+(vendores[b][c]||0),0) - CATS.reduce((s,c)=>s+(vendores[a][c]||0),0));
+    const totalLoja = nomes.reduce((s,n)=>s+CATS.reduce((ss,c)=>ss+(vendores[n][c]||0),0),0);
+    const cor    = sc(loja).tx;
+    const corBd  = sc(loja).bd;
+    const chartId = `term-loja-${loja.replace(/[\s\.]/g,"-")}`;
+    const alturaChart = Math.max(220, nomes.length * 40);
+    html += `<div class="card" style="margin-bottom:1.5rem;border-color:${corBd}33">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+        <span style="font-weight:800;font-size:0.9rem;color:${cor}">${loja}</span>
+        <span style="font-size:0.72rem;color:var(--muted)">${totalLoja} peças totais</span>
+      </div>
+      <div style="height:${alturaChart}px"><canvas id="${chartId}"></canvas></div>
+    </div>`;
+  });
+  container.innerHTML = html;
+  const isDarkMode = !document.documentElement.classList.contains("light");
+  const tickColor = isDarkMode ? "#4a5568" : "#94a3b8";
+  setTimeout(() => {
+    lojasFiltradas.forEach(loja => {
+      const chartId = `term-loja-${loja.replace(/[\s\.]/g,"-")}`;
+      const el = document.getElementById(chartId);
+      if(!el) return;
+      const vendores = dadosPorLoja[loja]||{};
+      const nomes = Object.keys(vendores).filter(n => CATS.some(c => (vendores[n][c]||0)>0));
+      if(!nomes.length) return;
+      nomes.sort((a,b) => CATS.reduce((s,c)=>s+(vendores[b][c]||0),0) - CATS.reduce((s,c)=>s+(vendores[a][c]||0),0));
+      const key = `loja-${loja}`;
+      if(termCharts[key]) termCharts[key].destroy();
+      termCharts[key] = new Chart(el.getContext("2d"), {
+        type:"bar",
+        data:{labels:nomes.map(n=>shortName(n)), datasets:CATS.map(cat=>({label:cat,data:nomes.map(n=>vendores[n][cat]||0),backgroundColor:CAT_COLORS[cat].bg,borderColor:CAT_COLORS[cat].bg.replace("0.65","1"),borderWidth:1,borderRadius:3}))},
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          plugins:{
+            legend:{position:"top",labels:{color:tickColor,font:{family:"Inter",size:10},boxWidth:10,padding:8}},
+            tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.raw} peças`},bodyFont:{family:"Inter"}}
+          },
+          scales:{
+            x:{grid:{display:false},ticks:{color:tickColor,font:{family:"Inter",size:9}}},
+            y:{grid:{color:"rgba(128,128,128,0.06)"},ticks:{color:tickColor,font:{family:"Inter",size:9}},beginAtZero:true}
+          }
+        }
+      });
+    });
+  }, 100);
+}
+
+// ===== INIT =====
+buildFilters();
+renderVendas();
+renderPA();
+renderTM();
+renderCurva();
+renderResumo();
+renderComparadas();
+renderDezena();
+renderTermometro();
+
+(function initLoad() {
+  const cached = cacheLoad();
+  if(cached && !cached.expirado) {
+    try {
+      const json = cached.data;
+      const rows = json.indicadores;
+      if(rows && rows.length > 1) {
+        const normH = s => String(s).trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[\s\.\/]/g,"");
+        const headers = rows[0].map(h => normH(h));
+        const headersOrig = rows[0].map(h => String(h).trim());
+        const dataRows = rows.slice(1).map(r => {
+          const obj = {};
+          headers.forEach((h,i) => { obj[h]=r[i]!==undefined?String(r[i]):""; obj[headersOrig[i]]=r[i]!==undefined?String(r[i]):""; });
+          return obj;
+        });
+        const lojaMap = {};
+        if(json.lojas && json.lojas.length > 1) {
+          let lojaAtual = "";
+          json.lojas.forEach(row => {
+            const val = String(row[0]).trim(); if(!val) return;
+            if(!/\(\d+\)/.test(val)&&(row.length===1||row[1]===""||row[1]===undefined)) { lojaAtual=val; }
+            else if(lojaAtual) { lojaMap[val]=lojaAtual; const cm=val.match(/\((\d+)\)\s*$/); if(cm) lojaMap[cm[1]]=lojaAtual; }
+          });
+        }
+        lojaMapDinamico = Object.assign({}, lojaMap);
+        if(json.baseAtual)    baseAtualData    = json.baseAtual;
+        if(json.baseAnterior) baseAnteriorData = json.baseAnterior;
+        if(json.curvaVend)    curvaVendData    = json.curvaVend;
+        if(json.faturamento)  faturamentoData  = json.faturamento;
+        if(json.termometros)  termometrosData  = json.termometros;
+        const mapped = tryMap(dataRows, lojaMap);
+        if(mapped && mapped.length) {
+          applyData(mapped, "cache", false);
+          setBadge(`Cache · ${cached.idadeMin}min`, "var(--accent3)", "Dados em cache — atualizando em background");
+          setStatus(`⚡ Cache local (${cached.idadeMin} min atrás) — atualizando em background...`, "var(--accent3)");
+        }
+      }
+    } catch(e) { console.warn("Erro ao carregar cache inicial:", e); }
+  }
+  loadFromSheets();
+})();
+
+
+// ===== RELATÓRIO PDF =====
+// CONFIGURE — grupos disponíveis no relatório PDF
+const RELATORIO_GRUPOS = {
+  LOJAS: ["AMAPA GARDEN SHOP LJ","SHOP MACAPA LJ","MACAPA LJR"],
+  OTICAS: ["OTICA SHOP MACAPA LJ"],
+};
+// CONFIGURE — cor de cada loja no relatório PDF
+const LOJA_CORES_RPT = {
+  "AMAPA GARDEN SHOP LJ":"#00bfa5",
+  "SHOP MACAPA LJ":"#7c4dff",
+  "MACAPA LJR":"#ff6d00",
+  "OTICA SHOP MACAPA LJ":"#f9a825"
+};
+
+let modalGrupoAtivo = "LOJAS";
+let modalLojaSelecionada = null;
+
+function fecharModal() {
+  const el = document.getElementById("modal-relatorio");
+  el.classList.remove("open");
+  el.style.display = "none";
+}
+function abrirModalRelatorio() {
+  modalGrupoAtivo = "LOJAS";
+  modalLojaSelecionada = null;
+  renderModalLojas();
+  document.querySelectorAll("#modal-grupo-btns .loja-radio").forEach((b,i) => b.classList.toggle("selected",i===0));
+  document.getElementById("btn-modal-gerar").disabled = true;
+  const el = document.getElementById("modal-relatorio");
+  el.style.display = "flex";
+  el.classList.add("open");
+}
+function fecharModalSeFora(e) { if(e.target === document.getElementById("modal-relatorio")) fecharModal(); }
+function setModalGrupo(g,btn) {
+  modalGrupoAtivo = g; modalLojaSelecionada = null;
+  document.querySelectorAll("#modal-grupo-btns .loja-radio").forEach(b => b.classList.remove("selected"));
+  btn.classList.add("selected");
+  document.getElementById("btn-modal-gerar").disabled = true;
+  renderModalLojas();
+}
+function renderModalLojas() {
+  const lojas = RELATORIO_GRUPOS[modalGrupoAtivo]||[];
+  document.getElementById("modal-lojas-grid").innerHTML = lojas.map(l => {
+    const cor = LOJA_CORES_RPT[l]||"#888";
+    return '<button type="button" class="loja-radio" onclick="selecionarLoja(\''+l+'\',this)">'
+      +'<span class="loja-dot" style="background:'+cor+'"></span>'
+      +'<span>'+l+'</span></button>';
+  }).join("");
+}
+function selecionarLoja(loja,el) {
+  modalLojaSelecionada = loja;
+  document.querySelectorAll("#modal-lojas-grid .loja-radio").forEach(b => b.classList.remove("selected"));
+  el.classList.add("selected");
+  document.getElementById("btn-modal-gerar").disabled = false;
+}
+
+function gerarRelatorio() {
+  var loja  = modalLojaSelecionada;
+  var grupo = modalGrupoAtivo;
+  if(!loja) return;
+  fecharModal();
+
+  var now  = new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"});
+  var cor  = LOJA_CORES_RPT[loja]||"#555";
+  var grupoLabel = grupo==="LOJAS" ? "🏪 Lojas" : "👓 Óticas";
+
+  function R(v){ return "R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function N(v){ return Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function isGer(n){ return /^GERENTE\s/i.test((n||"").trim()); }
+  function sN(full){
+    var c=(full||"").replace(/\s*\(\d+\)\s*$/,"").replace(/^GERENTE\s+/i,"");
+    var p=c.split(" "); var nm=p.length<=2?c:p[0]+" "+p[p.length-1];
+    return isGer(full)?nm+" 🚩":nm;
+  }
+
+  // ── estilos inline compactos ──
+  var TH = "padding:3px 5px;font-size:8px;text-transform:uppercase;letter-spacing:0.06em;color:#666;border-bottom:2px solid #ddd;background:#f5f5f5;white-space:nowrap;";
+  var TD = "padding:2px 5px;font-size:9px;border-bottom:1px solid #f0f0f0;";
+  var TDR = TD+"text-align:right;";
+  function card(label,val,color){
+    return '<div style="background:#f5f5f5;border-radius:6px;padding:6px 8px;border:1px solid #e0e0e0">'
+      +'<div style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#888;margin-bottom:2px">'+label+'</div>'
+      +'<div style="font-size:13px;font-weight:800;color:'+color+'">'+val+'</div>'
+      +'</div>';
+  }
+  function mini(label,val,color){
+    return '<div style="background:#f5f5f5;border-radius:4px;padding:3px 5px;border:1px solid #eee">'
+      +'<div style="font-size:7px;text-transform:uppercase;color:#aaa">'+label+'</div>'
+      +'<div style="font-size:8px;font-weight:700;color:'+(color||"#333")+'">'+val+'</div>'
+      +'</div>';
+  }
+  function sec(title){
+    return '<div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;'
+      +'color:#fff;margin:16px 0 8px;padding:5px 10px;background:'+cor+';border-radius:4px">'+title+'</div>';
+  }
+  function grid4(items){ return '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:8px">'+items+'</div>'; }
+  function grid3(items){ return '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px">'+items+'</div>'; }
+
+  // ── SEÇÃO 1: Indicadores ──
+  function secIndicadores(){
+    var grupoLojas = RELATORIO_GRUPOS[grupo];
+    var dataG = allData.filter(function(d){ return grupoLojas.indexOf(d.loja)>=0; });
+    function rankTable(title,color,sorted,colFn){
+      var rows = sorted.map(function(d,i){
+        var hl = d.loja===loja ? "background:#fffde7;" : "";
+        var bld= d.loja===loja ? "font-weight:700;" : "";
+        var lojaC = LOJA_CORES_RPT[d.loja]||"#888";
+        var tag = '<span style="background:'+lojaC+'22;color:'+lojaC+';padding:1px 4px;border-radius:3px;font-size:7px;font-weight:600">'+d.loja+'</span>';
+        return '<tr style="'+hl+'"><td style="'+TD+bld+'">'+(i+1)+'</td>'
+          +'<td style="'+TD+bld+'">'+sN(d.nome)+'</td>'
+          +'<td style="'+TD+'">'+tag+'</td>'
+          +colFn(d,i,sorted)
+          +'</tr>';
+      }).join("");
+      return '<div style="margin-bottom:8px">'
+        +'<div style="font-size:8px;font-weight:700;color:'+color+';margin-bottom:3px">'+title+'</div>'
+        +'<table style="width:100%;border-collapse:collapse">'+rows+'</table></div>';
+    }
+    var sortV  = dataG.slice().sort(function(a,b){return b.vendas-a.vendas;});
+    var sortPA = dataG.filter(function(d){return d.ppv>0;}).sort(function(a,b){return b.ppv-a.ppv;});
+    var sortTM = dataG.filter(function(d){return d.ticket>0;}).sort(function(a,b){return b.ticket-a.ticket;});
+
+    var tV = rankTable("💰 Ranking Vendas","#0077cc",sortV,function(d,i,arr){
+      var dif = i===0?'<span style="color:#1a9e5c">★ líder</span>':'<span style="color:#c0392b">-'+R(arr[i-1].vendas-d.vendas)+'</span>';
+      return '<td style="'+TDR+'">'+dif+'</td><td style="'+TDR+'font-weight:600;color:#0077cc">'+R(d.vendas)+'</td>';
+    });
+    var tPA = rankTable("📦 Ranking PA","#6c3fc7",sortPA,function(d){
+      return '<td style="'+TDR+'color:#888">'+d.pecas+'</td><td style="'+TDR+'font-weight:600;color:#6c3fc7">'+N(d.ppv)+'</td>';
+    });
+    var tTM = rankTable("🎯 Ranking TM","#b58800",sortTM,function(d){
+      var nv=d.vendas>0&&d.ticket>0?Math.round(d.vendas/d.ticket):"—";
+      return '<td style="'+TDR+'color:#888">'+nv+'</td><td style="'+TDR+'font-weight:600;color:#b58800">'+R(d.ticket)+'</td>';
+    });
+
+    return sec("📊 Indicadores — "+grupoLabel)
+      +'<div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:8px;align-items:start">'
+      +'<div>'+tV+'</div><div>'+tPA+'</div><div>'+tTM+'</div></div>'
+      +'<div style="font-size:7px;color:#aaa;margin-top:2px">Linhas amarelas = '+loja+'</div>';
+  }
+
+  // ── SEÇÃO 2: Curva ──
+  function secCurvaRpt(){
+    var entry = Object.entries(CURVA_TO_LOJA).find(function(e){return e[1]===loja;});
+    if(!entry) return sec("📈 Curva de Venda")+'<p style="color:#888;font-size:9px">Sem dados.</p>';
+    var li = parseInt(entry[0]);
+    var d1Idx = getD1Idx();
+    var fatReal = allData.filter(function(d){return d.loja===loja;}).reduce(function(s,d){return s+d.vendas;},0);
+    var espHoje = CURVA_RAW.slice(0,d1Idx+1).reduce(function(s,r){return s+(r.vals[li]||0);},0);
+    var meta    = META_MENSAL[li]||0;
+    var desvio  = fatReal-espHoje;
+    var pctMeta = meta>0?(fatReal/meta*100):0;
+    var dentro  = desvio>=0;
+    var falta   = meta-fatReal;
+    var diasR   = CURVA_RAW.slice(d1Idx+1).filter(function(r){return r.vals[li]>0;}).length;
+    var metaDia = diasR>0?falta/diasR:0;
+
+    // Faturamento diário: curva + real lado a lado
+    var fatDiario = getFatDiarioPorLoja(loja);
+    var diasComCurva = CURVA_RAW.filter(function(r){
+      var d=parseInt(r.data.split("/")[0]);
+      var d1Dia=CURVA_RAW[d1Idx]?parseInt(CURVA_RAW[d1Idx].data.split("/")[0]):99;
+      return r.vals[li]>0 && d<=d1Dia;
+    });
+    var acumReal=0;
+    var diasRows = diasComCurva.map(function(r){
+      var dia=parseInt(r.data.split("/")[0]);
+      var curvaV=r.vals[li];
+      var realV=fatDiario[dia]||0;
+      acumReal+=realV;
+      var diff=realV-curvaV;
+      var dCor=diff>=0?"#1a9e5c":"#c0392b";
+      return '<tr>'
+        +'<td style="'+TD+'color:#555">'+r.data+'</td>'
+        +'<td style="'+TDR+'color:#888">'+R(curvaV)+'</td>'
+        +'<td style="'+TDR+(realV>0?"font-weight:600;color:#222":"color:#ccc")+'">'+(realV>0?R(realV):"—")+'</td>'
+        +'<td style="'+TDR+'font-weight:600;color:'+dCor+'">'+(realV>0?(diff>=0?"+":"")+R(diff):"—")+'</td>'
+        +'<td style="'+TDR+'color:#555">'+R(acumReal)+'</td>'
+        +'</tr>';
+    }).join("");
+
+    var progressW = Math.min(pctMeta,100).toFixed(1);
+    return sec("📈 Curva de Venda — "+loja)
+      +grid4(card("Faturado MTD",R(fatReal),"#0077cc")+card("Curva Esperada",R(espHoje),"#888")+card("Desvio",(desvio>=0?"+":"")+R(desvio),dentro?"#1a9e5c":"#c0392b")+card("% Meta",pctMeta.toFixed(1)+"%",pctMeta>=90?"#1a9e5c":pctMeta>=70?"#b58800":"#c0392b"))
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
+      +'<div style="background:#f5f5f5;border-radius:6px;padding:7px 9px;border:1px solid #e0e0e0">'
+      +'<div style="font-size:8px;color:#888;font-weight:700;margin-bottom:3px">Status</div>'
+      +'<div style="font-size:12px;font-weight:800;color:'+(dentro?"#1a9e5c":"#c0392b")+'">'+(dentro?"✓ Dentro da Curva":"✗ Fora da Curva")+'</div>'
+      +'<div style="height:4px;background:#e0e0e0;border-radius:99px;overflow:hidden;margin:5px 0">'
+      +'<div style="height:100%;width:'+progressW+'%;background:'+cor+'"></div></div>'
+      +'<div style="font-size:8px;color:#888">Meta: '+R(meta)+' · Faltam: '+R(falta)+'</div>'
+      +'</div>'
+      +'<div style="background:#f5f5f5;border-radius:6px;padding:7px 9px;border:1px solid #e0e0e0">'
+      +'<div style="font-size:8px;color:#888;font-weight:700;margin-bottom:3px">Meta/Dia Recalc.</div>'
+      +'<div style="font-size:14px;font-weight:800;color:#b58800">'+R(metaDia)+'<span style="font-size:8px;color:#888">/dia</span></div>'
+      +'<div style="font-size:8px;color:#888">'+diasR+' dias úteis restantes</div>'
+      +'</div></div>'
+      +'<div style="font-size:8px;font-weight:700;color:#888;text-transform:uppercase;margin-bottom:3px">Faturamento Diário — Curva vs Realizado</div>'
+      +'<table style="width:100%;border-collapse:collapse">'
+      +'<thead><tr>'
+      +'<th style="'+TH+'">Data</th>'
+      +'<th style="'+TH+'text-align:right">Curva</th>'
+      +'<th style="'+TH+'text-align:right">Realizado</th>'
+      +'<th style="'+TH+'text-align:right">Diff</th>'
+      +'<th style="'+TH+'text-align:right">Acum. Real</th>'
+      +'</tr></thead><tbody>'+diasRows+'</tbody></table>';
+  }
+
+  // ── SEÇÃO 3: Resumo ──
+  function secResumoRpt(){
+    var vendedores = allData.filter(function(d){return d.loja===loja;}).sort(function(a,b){return b.vendas-a.vendas;});
+    if(!vendedores.length) return "";
+    var totalV=vendedores.reduce(function(s,d){return s+d.vendas;},0);
+    var avgPA=vendedores.filter(function(d){return d.ppv>0;}).reduce(function(s,d){return s+d.ppv;},0)/(vendedores.filter(function(d){return d.ppv>0;}).length||1);
+    var avgTM=vendedores.filter(function(d){return d.ticket>0;}).reduce(function(s,d){return s+d.ticket;},0)/(vendedores.filter(function(d){return d.ticket>0;}).length||1);
+    var r7=calc7030(vendedores);
+    var curvaOk=getCurvaStatusLoja(loja);
+    var mtdPct=getMTDPctLoja(loja);
+    var projL=getProjecaoLoja(loja);
+
+    var vendsHTML = vendedores.map(function(d,i){
+      var in7=d.vendas>=r7.threshold;
+      var pctL=r7.lider>0?(d.vendas/r7.lider*100).toFixed(0):0;
+      var pos=i===0?"🥇":i===1?"🥈":i===2?"🥉":"#"+(i+1);
+      var nV=d.vendas>0&&d.ticket>0?Math.round(d.vendas/d.ticket):0;
+      var mv=getMetaDiariaVendedor(d.nome,d.loja);
+      var pv=getProjecaoVendedor(d.nome);
+      var mvCor=mv?(mv.pctMeta>=90?"#1a9e5c":mv.pctMeta>=70?"#b58800":"#c0392b"):"#888";
+      return '<div style="background:#f5f5f5;border-radius:6px;padding:6px 8px;border-left:3px solid '+(in7?cor:"#c0392b")+';border:1px solid #e0e0e0;border-left:3px solid '+(in7?cor:"#c0392b")+';">'
+        +'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
+        +'<span style="font-size:9px;font-weight:700">'+pos+' '+sN(d.nome)+'</span>'
+        +'<span style="font-size:8px;color:'+(in7?"#1a9e5c":"#c0392b")+'">'+(in7?"✓":"✗")+' 70/30 · '+pctL+'%</span>'
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px">'
+        +mini("Vendas",R(d.vendas),"#0077cc")
+        +mini("PA",N(d.ppv||0))
+        +mini("TM",R(d.ticket||0))
+        +mini("Peças",d.pecas)
+        +mini("Nº Vend.",nV)
+        +(mv?mini("Meta/Dia",R(Math.max(0,mv.metaDia)),mvCor):"")
+        +(mv?mini("% Meta",mv.pctMeta.toFixed(1)+"%",mvCor):"")
+        +(pv?mini("Proj.Mês",R(pv.projecaoMes),"#6c3fc7"):"")
+        +'</div></div>';
+    }).join('<div style="height:4px"></div>');
+
+    return sec("📋 Resumo da Loja — "+loja)
+      +(projL
+        ?grid4(card("Total Vendas",R(totalV),"#0077cc")+card("MTD Meta",mtdPct.toFixed(1)+"%",mtdPct>=90?"#1a9e5c":mtdPct>=70?"#b58800":"#c0392b")+card("PA Médio",N(avgPA),"#6c3fc7")+card("TM Médio",R(avgTM),"#b58800"))
+        :grid3(card("Total Vendas",R(totalV),"#0077cc")+card("PA Médio",N(avgPA),"#6c3fc7")+card("TM Médio",R(avgTM),"#b58800"))
+      )
+      +(projL?grid4(card("Curva",curvaOk===null?"—":curvaOk?"✓ Dentro":"✗ Fora",curvaOk?"#1a9e5c":"#c0392b")+card("Proj.Mês",R(projL.projecaoMes),"#6c3fc7")+card("Meta",R(META_MENSAL[Object.entries(CURVA_TO_LOJA).find(function(e){return e[1]===loja;})?parseInt(Object.entries(CURVA_TO_LOJA).find(function(e){return e[1]===loja;})[0]):0]||0),"#888")+""):"")
+      +'<div style="font-size:8px;font-weight:700;color:#888;text-transform:uppercase;margin:6px 0 5px">Vendedores ('+vendedores.length+')</div>'
+      +vendsHTML;
+  }
+
+  // ── SEÇÃO 4: Comparadas ──
+  function secComparadasRpt(){
+    var atual=parseBase(baseAtualData);
+    var anterior=parseBase(baseAnteriorData);
+    var a=atual[loja]||{total_qtde:0,total_valor:0,categorias:[]};
+    var b=anterior[loja]||{total_qtde:0,total_valor:0,categorias:[]};
+    if(!a.total_qtde&&!b.total_qtde&&!a.categorias.length)
+      return sec("🔀 Comparadas Peças")+'<p style="color:#888;font-size:9px">Sem dados de base de peças.</p>';
+
+    function catOk(n){
+      if(!n) return false;
+      var x=n.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+      return x.includes("OCULOS")||x==="OC"||x.includes("RELOGIO")||x==="RE"||x.includes("GRAU")||x==="CG"||x.includes("LENTE")||x==="LE"||x.includes("ACESSOR")||x.includes("ACES")||x==="AC";
+    }
+    function cenStyle(vP,vF){
+      if(vP>=0&&vF>=0) return {l:"↑ Crescimento",c:"#1a9e5c"};
+      if(vP<0&&vF<0)   return {l:"↓ Queda",c:"#c0392b"};
+      return {l:(vP>=0?"↑":"↓")+" Vol "+(vF>=0?"↑":"↓")+" Valor",c:"#b58800"};
+    }
+    function fP(v){return v===999?"🟢 Novo":(v>=0?"+":"")+v.toFixed(1)+"%";}
+
+    var cats=[...new Set([...b.categorias.map(function(c){return c.nome;}), ...a.categorias.map(function(c){return c.nome;})])].sort().filter(catOk);
+
+    var rows=cats.map(function(cat){
+      var cA=a.categorias.find(function(c){return c.nome===cat;})||{qtde:0,valor:0};
+      var cB=b.categorias.find(function(c){return c.nome===cat;})||{qtde:0,valor:0};
+      if(!cA.qtde&&!cA.valor&&!cB.qtde&&!cB.valor) return "";
+      var vP=cB.qtde>0?(cA.qtde-cB.qtde)/cB.qtde*100:(cA.qtde>0?999:0);
+      var vF=cB.valor>0?(cA.valor-cB.valor)/cB.valor*100:(cA.valor>0?999:0);
+      var cen=cenStyle(vP===999?1:vP,vF===999?1:vF);
+      return '<tr>'
+        +'<td style="'+TD+'font-weight:600">'+cat+'</td>'
+        +'<td style="'+TDR+'color:#888">'+cB.qtde+'</td>'
+        +'<td style="'+TDR+'font-weight:700">'+cA.qtde+'</td>'
+        +'<td style="'+TDR+'color:'+(vP>=0?"#1a9e5c":"#c0392b")+';font-weight:600">'+fP(vP)+'</td>'
+        +'<td style="'+TDR+'color:#888">'+R(cB.valor)+'</td>'
+        +'<td style="'+TDR+'font-weight:700">'+R(cA.valor)+'</td>'
+        +'<td style="'+TDR+'color:'+(vF>=0?"#1a9e5c":"#c0392b")+';font-weight:600">'+fP(vF)+'</td>'
+        +'<td style="'+TD+'font-weight:700;color:'+cen.c+'">'+cen.l+'</td>'
+        +'</tr>';
+    }).join("");
+
+    var tVP=b.total_qtde>0?(a.total_qtde-b.total_qtde)/b.total_qtde*100:(a.total_qtde>0?999:0);
+    var tVF=b.total_valor>0?(a.total_valor-b.total_valor)/b.total_valor*100:(a.total_valor>0?999:0);
+    var cenT=cenStyle(tVP===999?1:tVP,tVF===999?1:tVF);
+
+    return sec("🔀 Comparadas Peças — "+loja)
+      +grid4(card("Peças Ant.",b.total_qtde.toString(),"#888")+card("Peças Atual",a.total_qtde.toString(),"#0077cc")+card("Fat.Ant.",R(b.total_valor),"#888")+card("Fat.Atual",R(a.total_valor),"#0077cc"))
+      +'<div style="font-size:11px;font-weight:800;color:'+cenT.c+';margin-bottom:6px">Cenário: '+cenT.l+'</div>'
+      +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'
+      +'<thead><tr>'
+      +'<th style="'+TH+'text-align:left">Cat.</th>'
+      +'<th style="'+TH+'">Pç.Ant</th><th style="'+TH+'">Pç.Atual</th><th style="'+TH+'">Var.Pç</th>'
+      +'<th style="'+TH+'">Fat.Ant</th><th style="'+TH+'">Fat.Atual</th><th style="'+TH+'">Var.Fat</th>'
+      +'<th style="'+TH+'">Cenário</th>'
+      +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }
+
+  // ── SEÇÃO 5: Dezena ──
+  function secDezenaRpt(){
+    if(!faturamentoData||faturamentoData.length<2)
+      return sec("🗓️ Resumo Dezena")+'<p style="color:#888;font-size:9px">Sem dados de faturamento.</p>';
+    var lojaIdx=["AMAPA GARDEN SHOP LJ","SHOP MACAPA LJ","MACAPA LJR","OTICA SHOP MACAPA LJ"].indexOf(loja);
+    var dataRows=faturamentoData[0]&&String(faturamentoData[0][0]||"").toLowerCase().includes("emiss")?faturamentoData.slice(1):faturamentoData;
+    var vendMap=parseFaturamento(dataRows);
+    var html=sec("🗓️ Resumo Dezena — "+loja);
+
+    [1,2,3].forEach(function(dez){
+      var ranges={1:{min:1,max:10},2:{min:11,max:20},3:{min:21,max:31}};
+      var min=ranges[dez].min, max=ranges[dez].max;
+      var dezNome=dez===1?"1ª Dezena (01–10)":dez===2?"2ª Dezena (11–20)":"3ª Dezena (21–fim)";
+      var metaDezLoja=getMetaDezena(lojaIdx>=0?lojaIdx:0,dez);
+      var diasCols=[]; for(var d=min;d<=max&&d<=31;d++) diasCols.push(d);
+
+      var vendedoresDez=[];
+      Object.entries(vendMap).forEach(function(e){
+        var nome=e[0],v=e[1];
+        if(v.loja!==loja) return;
+        var diasDez=Object.entries(v.diasMap).filter(function(x){var d2=parseInt(x[0]);return d2>=min&&d2<=max;});
+        if(!diasDez.length) return;
+        vendedoresDez.push({nome:nome,totalDezena:diasDez.reduce(function(s,x){return s+x[1];},0),diasMap:Object.fromEntries(diasDez.map(function(x){return [parseInt(x[0]),x[1]];}))});
+      });
+      vendedoresDez.sort(function(a,b){return b.totalDezena-a.totalDezena;});
+
+      var totalDez=vendedoresDez.reduce(function(s,v){return s+v.totalDezena;},0);
+      var pctM=metaDezLoja>0?(totalDez/metaDezLoja)*100:0;
+      var lider7=vendedoresDez.length?vendedoresDez[0].totalDezena:0;
+      var thresh7=lider7*0.7;
+      var hoje2=new Date().getDate();
+
+      html+='<div style="font-size:9px;font-weight:800;color:'+cor+';margin:10px 0 4px">'+dezNome+'</div>';
+      html+=grid3(card("Total Dez.","R$"+Math.round(totalDez).toLocaleString("pt-BR"),"#0077cc")+card("Meta Dez.","R$"+Math.round(metaDezLoja).toLocaleString("pt-BR"),"#888")+card("% Meta",pctM.toFixed(1)+"%",pctM>=100?"#1a9e5c":pctM>=70?"#b58800":"#c0392b"));
+
+      if(!vendedoresDez.length){html+='<p style="color:#aaa;font-size:8px">Sem dados.</p>';return;}
+
+      html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'
+        +'<thead><tr><th style="'+TH+'text-align:left">Vendedor</th>'
+        +diasCols.map(function(d){return '<th style="'+TH+'">'+String(d).padStart(2,"0")+'</th>';}).join("")
+        +'<th style="'+TH+'">Total</th><th style="'+TH+'">%Meta</th><th style="'+TH+'">70/30</th>'
+        +'</tr></thead><tbody>';
+
+      vendedoresDez.forEach(function(v){
+        var metaI=metaDezLoja/Math.max(vendedoresDez.length,1);
+        var pctV=metaI>0?(v.totalDezena/metaI)*100:0;
+        var in7=v.totalDezena>=thresh7;
+        html+='<tr style="background:'+(in7?"#f9fffd":"#fff8f8")+'">'
+          +'<td style="'+TD+'font-weight:600">'+sN(v.nome)+'</td>'
+          +diasCols.map(function(d){var val=v.diasMap[d]||0;return '<td style="'+TDR+(val>0?"color:#333":"color:#ccc")+'">'+(val>0?"R$"+Math.round(val).toLocaleString("pt-BR"):"—")+'</td>';}).join("")
+          +'<td style="'+TDR+'font-weight:700;color:#0077cc">R$'+Math.round(v.totalDezena).toLocaleString("pt-BR")+'</td>'
+          +'<td style="'+TDR+'font-weight:600;color:'+(pctV>=100?"#1a9e5c":pctV>=70?"#b58800":"#c0392b")+'">'+pctV.toFixed(0)+'%</td>'
+          +'<td style="'+TDR+'">'+(in7?'<span style="color:#1a9e5c">✓</span>':'<span style="color:#c0392b">✗</span>')+'</td>'
+          +'</tr>';
+      });
+      // total row
+      html+='<tr style="border-top:2px solid #ddd;background:#f5f5f5;font-weight:800">'
+        +'<td style="'+TD+'">TOTAL</td>'
+        +diasCols.map(function(d){var s=vendedoresDez.reduce(function(a,v){return a+(v.diasMap[d]||0);},0);return '<td style="'+TDR+(s>0?"color:#333":"color:#ccc")+'">'+(s>0?"R$"+Math.round(s).toLocaleString("pt-BR"):"—")+'</td>';}).join("")
+        +'<td style="'+TDR+'color:#0077cc">R$'+Math.round(totalDez).toLocaleString("pt-BR")+'</td>'
+        +'<td style="'+TDR+'color:'+(pctM>=100?"#1a9e5c":pctM>=70?"#b58800":"#c0392b")+'">'+pctM.toFixed(1)+'%</td>'
+        +'<td></td></tr>';
+      html+='</tbody></table></div>';
+    });
+    return html;
+  }
+
+  // ── SEÇÃO 6: Termômetro ──
+  function secTermRpt(){
+    var CATS=["OC","RE","CG","LE","Aces"];
+    var CATC={"OC":"#0077cc","RE":"#6c3fc7","CG":"#e05c1b","LE":"#b58800","Aces":"#1a9e5c"};
+    var grupoLojas=RELATORIO_GRUPOS[grupo];
+    var hasDados=CATS.some(function(cat){return termometrosData[cat]&&termometrosData[cat].length>1;});
+    if(!hasDados) return sec("🌡️ Termômetro de Peças")+'<p style="color:#888;font-size:9px">Sem dados.</p>';
+
+    var dadosGrupo={};
+    grupoLojas.forEach(function(l){dadosGrupo[l]={};});
+    CATS.forEach(function(cat){
+      (termometrosData[cat]||[]).slice(1).forEach(function(row){
+        var nome=String(row[1]||"").trim();
+        var qtde=parseInt(String(row[2]||"0").replace(/[^\d]/g,""))||0;
+        if(!nome||qtde<=0) return;
+        var l=lojaDoVendedor(nome);
+        if(!l||grupoLojas.indexOf(l)<0) return;
+        if(!dadosGrupo[l]) dadosGrupo[l]={};
+        if(!dadosGrupo[l][nome]) dadosGrupo[l][nome]={};
+        dadosGrupo[l][nome][cat]=(dadosGrupo[l][nome][cat]||0)+qtde;
+      });
+    });
+
+    // Tabela resumo grupo
+    var grupoRows=grupoLojas.map(function(l){
+      var vends=dadosGrupo[l]||{};
+      var vals=CATS.map(function(cat){return Object.values(vends).reduce(function(s,v){return s+(v[cat]||0);},0);});
+      var total=vals.reduce(function(s,v){return s+v;},0);
+      if(!total) return "";
+      var lojaC=LOJA_CORES_RPT[l]||"#888";
+      var bld=l===loja?"font-weight:800;":"";
+      var bg=l===loja?"background:#fffde7;":"";
+      return '<tr style="'+bg+'border-bottom:1px solid #f0f0f0">'
+        +'<td style="'+TD+bld+'color:'+lojaC+'">'+l+'</td>'
+        +vals.map(function(v,i){return '<td style="'+TDR+bld+'color:'+CATC[CATS[i]]+'">'+( v>0?v:"—")+'</td>';}).join("")
+        +'<td style="'+TDR+bld+'font-weight:700">'+total+'</td>'
+        +'</tr>';
+    }).join("");
+
+    var vendsDaLoja=dadosGrupo[loja]||{};
+    var nomesL=Object.keys(vendsDaLoja).filter(function(n){return CATS.some(function(c){return (vendsDaLoja[n][c]||0)>0;});});
+    nomesL.sort(function(a,b){return CATS.reduce(function(s,c){return s+(vendsDaLoja[b][c]||0);},0)-CATS.reduce(function(s,c){return s+(vendsDaLoja[a][c]||0);},0);});
+    var detalheRows=nomesL.map(function(n){
+      var vals=CATS.map(function(cat){return vendsDaLoja[n][cat]||0;});
+      var tot=vals.reduce(function(s,v){return s+v;},0);
+      return '<tr style="border-bottom:1px solid #f0f0f0">'
+        +'<td style="'+TD+'font-weight:600">'+sN(n)+'</td>'
+        +vals.map(function(v,i){return '<td style="'+TDR+'color:'+CATC[CATS[i]]+'">'+( v>0?v:"—")+'</td>';}).join("")
+        +'<td style="'+TDR+'font-weight:700">'+tot+'</td>'
+        +'</tr>';
+    }).join("");
+
+    var thCat='<th style="'+TH+'text-align:left">Loja/Vend.</th>'+CATS.map(function(c){return '<th style="'+TH+'color:'+CATC[c]+'">'+c+'</th>';}).join("")+'<th style="'+TH+'">Total</th>';
+
+    return sec("🌡️ Termômetro de Peças")
+      +'<div style="font-size:8px;font-weight:700;color:#888;margin-bottom:3px">Grupo '+grupoLabel+'</div>'
+      +'<table style="width:100%;border-collapse:collapse;margin-bottom:10px"><thead><tr>'+thCat+'</tr></thead><tbody>'+grupoRows+'</tbody></table>'
+      +(nomesL.length
+        ?'<div style="font-size:8px;font-weight:700;color:'+cor+';margin-bottom:3px">Detalhe — '+loja+'</div>'
+          +'<table style="width:100%;border-collapse:collapse"><thead><tr>'+thCat+'</tr></thead><tbody>'+detalheRows+'</tbody></table>'
+        :'<p style="color:#aaa;font-size:9px">Sem dados desta loja no termômetro.</p>');
+  }
+
+  // ── Montar HTML ──
+  var corpo = secIndicadores() + secCurvaRpt() + secResumoRpt() + secComparadasRpt() + secDezenaRpt() + secTermRpt();
+
+  var html = '<!DOCTYPE html><html lang="pt-BR"><head>'
+    +'<meta charset="UTF-8">'
+    +'<title>Relatório '+loja+' — '+now+'</title>'
+    +'<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">'
+    +'<style>'
+    +'*{margin:0;padding:0;box-sizing:border-box;}'
+    +'body{font-family:Inter,sans-serif;background:#fff;color:#1a202c;font-size:10px;line-height:1.4;}'
+    +'.rpt-header{padding:14px 18px 10px;border-bottom:3px solid '+cor+';}'
+    +'@media print{'
+    +'@page{margin:8mm 7mm;size:A4;}'
+    +'body{font-size:8px;}'
+    +'.rpt-header{padding:8px 10px 6px;}'
+    +'button,.np{display:none!important;}'
+    +'table{page-break-inside:auto;}tr{page-break-inside:avoid;}'
+    +'}'
+    +'</style></head><body>'
+    +'<div class="rpt-header" style="display:flex;align-items:center;justify-content:space-between">'
+    +'<div>'
+    +'<div style="font-size:20px;font-weight:900;color:'+cor+';letter-spacing:-0.04em">'+loja+'</div>'
+    +'<div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.1em">'+now+' · '+grupoLabel+'</div>'
+    +'</div>'
+    +'<button class="np" onclick="window.print()" style="padding:7px 16px;background:'+cor+';color:#000;border:none;border-radius:6px;font-family:Inter,sans-serif;font-size:10px;font-weight:700;cursor:pointer">⬇ Salvar PDF</button>'
+    +'</div>'
+    +'<div style="padding:10px 18px">'+corpo+'</div>'
+    +'</body></html>';
+
+  // Usa Blob URL para evitar bloqueio de popup
+  var blob = new Blob([html], {type: 'text/html;charset=utf-8'});
+  var url  = URL.createObjectURL(blob);
+  var w    = window.open(url, "_blank");
+  if(!w) {
+    // Fallback: link para download/abrir manualmente
+    var a = document.createElement("a");
+    a.href = url; a.target = "_blank"; a.rel = "noopener";
+    a.click();
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+</script>
+</body>
+</html>
